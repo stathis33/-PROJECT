@@ -1,9 +1,10 @@
 import random
 import pygame
+
 import sys
 import math
 
-# Initialize Pygame
+# Initialize Pygame aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 pygame.init()
 
 # Screen dimensions
