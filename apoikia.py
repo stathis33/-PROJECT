@@ -1,10 +1,9 @@
 import random
 import pygame
-
 import sys
 import math
 
-# Initialize Pygame 
+# Initialize Pygame
 pygame.init()
 
 # Screen dimensions
@@ -33,6 +32,7 @@ class Player:
         self.settlements = []
         self.roads = []
         self.points = 0
+        self.has_rolled = False
 
 class Tile:
     def __init__(self, resource_type, number, position):
@@ -66,6 +66,27 @@ class Road:
         self.end_pos = end_pos
 
 class Game:
+    def show_start_screen(self):
+        waiting = True
+        font = pygame.font.SysFont(None, 60)
+        play_button = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 30, 200, 60)
+        clock = pygame.time.Clock()
+
+        while waiting:
+            screen.fill(WHITE)
+            pygame.draw.rect(screen, (100, 200, 100), play_button)
+            play_text = font.render("Play", True, BLACK)
+            screen.blit(play_text, play_text.get_rect(center=play_button.center))
+            pygame.display.flip()
+            clock.tick(60)
+
+            for event in pygame.event.get():
+               if event.type == pygame.QUIT:
+                  pygame.quit()
+                  sys.exit()
+               elif event.type == pygame.MOUSEBUTTONDOWN:
+                   if play_button.collidepoint(pygame.mouse.get_pos()):
+                      waiting = False
     def __init__(self):
         self.players = []
         self.tiles = []
@@ -74,18 +95,27 @@ class Game:
         self.last_roll = None
         self.building_road = False
         self.setup_tiles()
+        self.resource_images = {
+            'wood': pygame.image.load('tree.png'),
+            'wheat': pygame.image.load('wheat-plant.png'),
+            'ore': pygame.image.load('minerals.png'),
+            'brick': pygame.image.load('brick.png'),
+            'sheep': pygame.image.load('sheep.png')
+        }
+        for key in self.resource_images:
+            self.resource_images[key] = pygame.transform.scale(self.resource_images[key], (32, 32))
 
     def setup_tiles(self):
         resources = ['wood', 'wheat', 'ore', 'brick', 'sheep', 'wheat', 'brick', 'ore', 'wheat',
-                     'brick', 'wheat', 'wood', 'sheep', 'wood', 'wood', 'sheep', 'sheep', 'ore']
-        numbers = [5, 3, 2, 12, 5, 6, 4, 8, 4, 11, 7, 9, 8, 9, 12, 10, 11, 10]
+                     'brick', 'wheat', 'wood', 'sheep', 'wood', 'wood', 'sheep', 'sheep', 'ore', 'brick']
+        numbers = [5, 3, 2, 12, 5, 6, 4, 8, 4, 11, 7, 9, 8, 9, 12, 10, 11, 10, 6]
         x_offset = TILE_RADIUS * math.sqrt(3)
         y_offset = TILE_RADIUS * 1.5
-        rows = [3, 4, 5, 4, 3]
+        rows = [3, 4, 5, 4, 3, 1]
         start_y = 100
         idx = 0
         for row_idx, tiles_in_row in enumerate(rows):
-            start_x = WIDTH/2 - (tiles_in_row - 1) * x_offset / 2
+            start_x = WIDTH / 2 - (tiles_in_row - 1) * x_offset / 2
             for tile_in_row in range(tiles_in_row):
                 if idx >= len(resources):
                     break
@@ -112,24 +142,28 @@ class Game:
     def draw_tiles(self):
         for tile in self.tiles:
             self.draw_hexagon(screen, BLACK, tile.position, TILE_RADIUS)
+
+            # Αριθμός παραγωγής
             font = pygame.font.SysFont(None, 24)
-            text = font.render(f"{tile.number}", True, BLUE)
-            text_rect = text.get_rect(center=tile.position)
-            screen.blit(text, text_rect)
-            resource_font = pygame.font.SysFont(None, 18)
-            resource_text = resource_font.render(tile.resource_type, True, GREEN)
-            resource_rect = resource_text.get_rect(center=(tile.position[0], tile.position[1] + 20))
-            screen.blit(resource_text, resource_rect)
+            number_text = font.render(str(tile.number), True, BLUE)
+            screen.blit(number_text, number_text.get_rect(center=tile.position))
+
+            # Εικόνα πόρου αντί για κείμενο
+            resource_img = self.resource_images.get(tile.resource_type)
+            if resource_img:
+                img_rect = resource_img.get_rect(center=(tile.position[0], tile.position[1] + 25))
+                screen.blit(resource_img, img_rect)
+
+            # Οικισμοί
             for settlement in tile.settlements:
                 pygame.draw.circle(screen, settlement.owner.color, settlement.location, 8)
 
     def draw_roads(self):
-        for road in self.roads:
+         for road in self.roads:
             pygame.draw.line(screen, road.owner.color, road.start_pos, road.end_pos, 5)
 
     def is_close(self, pos1, pos2, threshold=10):
         return math.hypot(pos1[0] - pos2[0], pos1[1] - pos2[1]) < threshold
-
     def place_settlement(self, pos):
         for tile in self.tiles:
             for vertex in tile.vertices:
@@ -140,10 +174,7 @@ class Game:
                             if self.is_close(vertex, settlement.location, threshold=55):
                                 print("Too close to another settlement!")
                                 return
-
                     player = self.players[self.current_player_index]
-
-                    # Αν είναι το 3ο ή επόμενο σπίτι, αφαιρούμε πόρους
                     if len(player.settlements) >= 2:
                         if (player.resources['wood'] >= 1 and player.resources['brick'] >= 1 and
                             player.resources['sheep'] >= 1 and player.resources['wheat'] >= 1):
@@ -154,12 +185,10 @@ class Game:
                         else:
                             print("Δεν έχεις αρκετούς πόρους για να χτίσεις σπίτι!")
                             return
-
                     settlement = Settlement(player, vertex)
                     tile.settlements.append(settlement)
                     player.settlements.append(settlement)
                     print(f"Settlement placed by {player.name}")
-                    self.current_player_index = (self.current_player_index + 1) % len(self.players)
                     return
 
     def place_road(self, pos):
@@ -178,17 +207,13 @@ class Game:
                     min_dist = dist
                     best_start = start
                     best_end = end
-
         if min_dist < 20:
             player = self.players[self.current_player_index]
-
             for road in self.roads:
                 if (road.start_pos == best_start and road.end_pos == best_end) or (road.start_pos == best_end and road.end_pos == best_start):
                     print("Υπάρχει ήδη δρόμος εδώ!")
                     return
-
             connected = False
-
             if len(player.roads) < 2:
                 for settlement in player.settlements[:2]:
                     if self.is_close(settlement.location, best_start) or self.is_close(settlement.location, best_end):
@@ -210,22 +235,24 @@ class Game:
                 if not connected:
                     print("Δεν συνδέεται με υπάρχοντα δρόμο ή οικισμό!")
                     return
-
             if len(player.roads) >= 2:
                 if player.resources['wood'] < 1 or player.resources['brick'] < 1:
                     print("Not enough resources to build a road!")
                     return
                 player.resources['wood'] -= 1
                 player.resources['brick'] -= 1
-
             new_road = Road(player, best_start, best_end)
             self.roads.append(new_road)
             player.roads.append(new_road)
             print(f"Road built by {player.name}")
-            self.current_player_index = (self.current_player_index + 1) % len(self.players)
 
     def roll_dice(self):
+        player = self.players[self.current_player_index]
+        if player.has_rolled:
+            print("Έχεις ήδη ρίξει τα ζάρια αυτόν τον γύρο!")
+            return
         self.last_roll = random.randint(1, 6) + random.randint(1, 6)
+        player.has_rolled = True
         print(f"Dice rolled: {self.last_roll}")
         self.distribute_resources()
 
@@ -240,51 +267,110 @@ class Game:
                                 print(f"{player.name} receives 1 {tile.resource_type}")
                                 break
 
+    def end_turn(self):
+        self.players[self.current_player_index].has_rolled = False
+        self.current_player_index = (self.current_player_index + 1) % len(self.players)
+        print(f"Next player: {self.players[self.current_player_index].name}")
+
     def draw_ui(self):
         font = pygame.font.SysFont(None, 36)
-        roll_text = font.render("Roll Dice", True, BLACK)
-        pygame.draw.rect(screen, YELLOW, (WIDTH-150, HEIGHT-100, 120, 50))
-        screen.blit(roll_text, (WIDTH-145, HEIGHT-90))
+        player = self.players[self.current_player_index]
+        roll_btn_color = (180, 180, 180) if player.has_rolled else YELLOW
+        roll_text_color = (100, 100, 100) if player.has_rolled else BLACK
+        roll_text = font.render("Roll Dice", True, roll_text_color)
+        pygame.draw.rect(screen, roll_btn_color, (WIDTH - 150, HEIGHT - 100, 120, 40))
+        screen.blit(roll_text, (WIDTH - 145, HEIGHT - 90))
+
+        end_turn_text = font.render("Τέλος", True, BLACK)
+        pygame.draw.rect(screen, (200, 200, 200), (WIDTH - 150, HEIGHT - 160, 120, 40))
+        screen.blit(end_turn_text, (WIDTH - 145, HEIGHT - 150))
+
+        build_mode_text = font.render(("Δρόμος" if self.building_road else "Οικισμός"), True, BLACK)
+        pygame.draw.rect(screen, (180, 220, 255), (WIDTH - 150, HEIGHT - 220, 120, 40))
+        screen.blit(build_mode_text, (WIDTH - 145, HEIGHT - 210))
+
         if self.last_roll is not None:
             result_text = font.render(f"Rolled: {self.last_roll}", True, BLACK)
-            screen.blit(result_text, (WIDTH-170, 20))
+            screen.blit(result_text, (WIDTH - 170, 20))
+
+        turn_text = font.render(f"Παίζει ο: {player.name}", True, player.color)
+        screen.blit(turn_text, (20, 20))
+
         small_font = pygame.font.SysFont(None, 24)
-        y_offset = 70
+        y_offset = HEIGHT - 100
         for player in self.players:
-            resources = ", ".join(f"{k}:{v}" for k, v in player.resources.items())
-            text = small_font.render(f"{player.name}: {resources}", True, BLACK)
-            screen.blit(text, (20, y_offset))
-            y_offset += 30
+            name_text = small_font.render(player.name, True, player.color)
+            screen.blit(name_text, (20, y_offset))
+
+            x_offset = 130
+            for res_type, amount in player.resources.items():
+              icon = self.resource_images.get(res_type)
+              if icon:
+                 screen.blit(icon, (x_offset, y_offset))
+                 amt_text = small_font.render(str(amount), True, BLACK)
+                 screen.blit(amt_text, (x_offset + 35, y_offset + 8))
+                 x_offset += 70
+            y_offset += 40  # Απόσταση μεταξύ παικτών
+    def draw_highlights(self):
+        mouse_pos = pygame.mouse.get_pos()
+        if self.building_road:
+            for tile in self.tiles:
+                vertices = tile.vertices
+                for i in range(6):
+                    start = vertices[i]
+                    end = vertices[(i+1)%6]
+                    mid = ((start[0]+end[0])/2, (start[1]+end[1])/2)
+                    dist = math.hypot(mouse_pos[0] - mid[0], mouse_pos[1] - mid[1])
+                    if dist < 20:
+                        pygame.draw.line(screen, (150, 150, 255), start, end, 3)
+        else:
+            for tile in self.tiles:
+                for vertex in tile.vertices:
+                    dist = math.hypot(mouse_pos[0] - vertex[0], mouse_pos[1] - vertex[1])
+                    if dist < 15:
+                        pygame.draw.circle(screen, (100, 255, 100), vertex, 8, 2)
 
     def run(self):
-        clock = pygame.time.Clock()
-        running = True
-        while running:
-            screen.fill(WHITE)
-            self.draw_tiles()
-            self.draw_roads()
-            self.draw_ui()
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_r:
-                        self.building_road = not self.building_road
-                        print("Building Road Mode: ", self.building_road)
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        x, y = pygame.mouse.get_pos()
-                        if WIDTH-150 <= x <= WIDTH-30 and HEIGHT-100 <= y <= HEIGHT-50:
-                            self.roll_dice()
-                        elif self.building_road:
-                            self.place_road((x, y))
-                        else:
-                            self.place_settlement((x, y))
-            pygame.display.flip()
-            clock.tick(60)
-        pygame.quit()
-        sys.exit()
+          
+          self.show_start_screen() 
+          
 
+          clock = pygame.time.Clock()
+          running = True
+          while running:
+              
+              screen.fill(WHITE)
+              self.draw_tiles()
+              self.draw_roads()
+              self.draw_ui()
+              self.draw_highlights()
+
+              for event in pygame.event.get():
+                  if event.type == pygame.QUIT:
+                    
+                    running = False
+
+                  if event.type == pygame.MOUSEBUTTONDOWN:
+                      if event.button == 1:
+                          x, y = pygame.mouse.get_pos()
+                          if WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 100 <= y <= HEIGHT - 60:
+                            self.roll_dice()
+                          elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 160 <= y <= HEIGHT - 120:
+                            self.end_turn()
+                          elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 220 <= y <= HEIGHT - 180:
+                            self.building_road = not self.building_road
+                            print("Building mode:", "Road" if self.building_road else "Settlement")
+                          elif self.building_road:
+                            self.place_road((x, y))
+                          else:
+                            self.place_settlement((x, y))
+                   
+                  pygame.display.flip()
+                  clock.tick(60)
+
+
+              
+   
 if __name__ == "__main__":
     game = Game()
     game.add_player("Alice")
