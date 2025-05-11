@@ -96,11 +96,11 @@ class Game:
         self.building_road = False
         self.setup_tiles()
         self.resource_images = {
-            'wood': pygame.image.load('tree.png'),
-            'wheat': pygame.image.load('wheat-plant.png'),
-            'ore': pygame.image.load('minerals.png'),
-            'brick': pygame.image.load('brick.png'),
-            'sheep': pygame.image.load('sheep.png')
+            'wood': pygame.image.load('code/wood.png'),
+            'wheat': pygame.image.load('code/wheat.png'),
+            'ore': pygame.image.load('code/ore.png'),
+            'brick': pygame.image.load('code/brick.png'),
+            'sheep': pygame.image.load('code/sheep.png')
         }
         for key in self.resource_images:
             self.resource_images[key] = pygame.transform.scale(self.resource_images[key], (32, 32))
