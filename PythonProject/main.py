@@ -2,7 +2,7 @@ import random
 import pygame
 import sys
 import math
-
+from start_screen import show_start_screen
 # Initialize Pygame
 pygame.init()
 
@@ -331,48 +331,50 @@ class Game:
                         pygame.draw.circle(screen, (100, 255, 100), vertex, 8, 2)
 
     def run(self):
-          
-          self.show_start_screen() 
-          
+        selected_players, use_ai = show_start_screen(screen, WIDTH, HEIGHT)
 
-          clock = pygame.time.Clock()
-          running = True
-          while running:
-              
-              screen.fill(WHITE)
-              self.draw_tiles()
-              self.draw_roads()
-              self.draw_ui()
-              self.draw_highlights()
+        for i in range(selected_players):
+            name = f"Player {i + 1}"
+            is_ai = use_ai and i > 0
+            self.add_player(name, is_ai)
 
-              for event in pygame.event.get():
-                  if event.type == pygame.QUIT:
-                    
+        clock = pygame.time.Clock()
+        running = True
+
+        while running:
+            screen.fill(WHITE)
+            self.draw_tiles()
+            self.draw_roads()
+            self.draw_ui()
+            self.draw_highlights()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
                     running = False
 
-                  if event.type == pygame.MOUSEBUTTONDOWN:
-                      if event.button == 1:
-                          x, y = pygame.mouse.get_pos()
-                          if WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 100 <= y <= HEIGHT - 60:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        x, y = pygame.mouse.get_pos()
+                        if WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 100 <= y <= HEIGHT - 60:
                             self.roll_dice()
-                          elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 160 <= y <= HEIGHT - 120:
+                        elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 160 <= y <= HEIGHT - 120:
                             self.end_turn()
-                          elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 220 <= y <= HEIGHT - 180:
+                        elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 220 <= y <= HEIGHT - 180:
                             self.building_road = not self.building_road
                             print("Building mode:", "Road" if self.building_road else "Settlement")
-                          elif self.building_road:
+                        elif self.building_road:
                             self.place_road((x, y))
-                          else:
+                        else:
                             self.place_settlement((x, y))
-                   
-                  pygame.display.flip()
-                  clock.tick(60)
+
+            pygame.display.flip()
+            clock.tick(60)
+
+
 
 
               
    
 if __name__ == "__main__":
     game = Game()
-    game.add_player("Alice")
-    game.add_player("Bob", is_ai=True)
-    game.run()
+    game.run() 
