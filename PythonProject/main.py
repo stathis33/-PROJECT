@@ -7,7 +7,7 @@ import math
 pygame.init()
 
 # Screen dimensions
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1200, 750
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Build Your Colony")
 
@@ -66,8 +66,42 @@ class Road:
         self.start_pos = start_pos
         self.end_pos = end_pos
 
+class Harbor:
+    def __init__(self, resource_type, ratio, position, edge_vertices):
+        self.resource_type = resource_type  # 'wood', 'brick', etc. or None for generic
+        self.ratio = ratio  # 2 or 3
+        self.position = position  # center for drawing
+        self.edge_vertices = edge_vertices  # two vertex positions
+
 class Game:
     def __init__(self):
+        self.message = ""
+        self.wheat_harbor_vertex_ids = {26, 27}
+        self.ore_harbor_vertex_ids = {39, 49}
+        self.sheep_harbor_vertex_ids = {52, 46}
+        self.brick_harbor_vertex_ids = {22, 23}
+        self.wood_harbor_vertex_ids = {0, 9}
+        self.generic_harbor_vertex_ids = {3, 4, 13, 10, 36, 37, 50, 51}
+        self.vertex_id_map = {}
+        self.vertex_list = []
+        self.next_vertex_id = 0
+        self.show_bank_menu = False
+        self.selected_trade_resource = None
+        self.trading_with_bank = False
+        self.trade_give = None
+        self.trade_receive = None
+        self.harbors = []
+        self.harbor_images = {
+    	    'wood': pygame.image.load('wood.png'),
+            'brick': pygame.image.load('brick.png'),
+            'wheat': pygame.image.load('wheat.png'),
+            'sheep': pygame.image.load('sheep.png'),
+            'ore': pygame.image.load('ore.png'),
+            '3:1': pygame.image.load('three_to_one.png')  # generic harbor
+        }
+
+        original_bg = pygame.image.load("Screenshot 2025-05-16 222805.png")
+        self.background = pygame.transform.scale(original_bg, (int(original_bg.get_width() * 1.02), int(original_bg.get_height() * 1.02)))
         self.players = []
         self.tiles = []
         self.roads = []
@@ -84,6 +118,39 @@ class Game:
         }
         for key in self.resource_images:
             self.resource_images[key] = pygame.transform.scale(self.resource_images[key], (32, 32))
+        for key in self.harbor_images:
+            self.harbor_images[key] = pygame.transform.scale(self.harbor_images[key], (32, 32))
+    
+    def show_popup_message(self, text, color=RED):
+        font = pygame.font.SysFont(None, 36)
+        msg_surface = font.render(text, True, color)
+        bg_rect = pygame.Rect(WIDTH // 2 - 300, HEIGHT // 2 - 40, 600, 80)
+        pygame.draw.rect(screen, (255, 255, 220), bg_rect)  # υπόβαθρο
+        pygame.draw.rect(screen, BLACK, bg_rect, 2)         # περίγραμμα
+        screen.blit(msg_surface, msg_surface.get_rect(center=bg_rect.center))
+        pygame.display.flip()
+        pygame.time.wait(1500)
+
+
+    def get_vertex_id(self, pos):
+        for vertex, vid in self.vertex_id_map.items():
+            if self.is_close(vertex, pos, threshold=1):
+                return vid
+        return None
+
+    def assign_vertex_ids(self):
+        for tile in self.tiles:
+            for vertex in tile.vertices:
+                exists = False
+                for existing in self.vertex_list:
+                    if self.is_close(existing, vertex, threshold=1):
+                        exists = True
+                        break
+                if not exists:
+                    self.vertex_list.append(vertex)
+                    self.vertex_id_map[vertex] = self.next_vertex_id
+                    self.next_vertex_id += 1
+
 
     def show_start_screen(self):
         waiting = True
@@ -106,7 +173,78 @@ class Game:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     if play_button.collidepoint(pygame.mouse.get_pos()):
                         waiting = False
+    
 
+    def execute_bank_trade(self):
+        player = self.players[self.current_player_index]
+        give = self.trade_give
+        receive = self.trade_receive
+
+        has_2to1_harbor = False
+        has_3to1_harbor = False
+
+        for settlement in player.settlements:
+            vertex_id = self.get_vertex_id(settlement.location)
+            for harbor in self.harbors:
+                if harbor.ratio == 2 and harbor.resource_type == give:
+                    if any(self.is_close(settlement.location, vertex, threshold=15) for vertex in harbor.edge_vertices):
+                        has_2to1_harbor = True
+            
+            if give == 'wheat' and vertex_id in self.wheat_harbor_vertex_ids:
+                has_2to1_harbor = True
+
+            if give == 'ore' and vertex_id in self.ore_harbor_vertex_ids:
+                has_2to1_harbor = True
+           
+            # Ειδική περίπτωση: settlement σε κορυφή για wood
+            if give == 'wood' and vertex_id in self.wood_harbor_vertex_ids:
+                has_2to1_harbor = True
+
+            # Ειδική περίπτωση: settlement σε κορυφή για brick
+            if give == 'brick' and vertex_id in self.brick_harbor_vertex_ids:
+                has_2to1_harbor = True
+
+            # Ειδική περίπτωση: settlement σε κορυφή για sheep
+            if give == 'sheep' and vertex_id in self.sheep_harbor_vertex_ids:
+                has_2to1_harbor = True
+
+            # Έλεγχος για generic 3:1
+            if vertex_id in self.generic_harbor_vertex_ids:
+                has_3to1_harbor = True
+
+
+            
+
+            
+           
+           
+
+            vertex_id = self.get_vertex_id(settlement.location)
+            if vertex_id in self.generic_harbor_vertex_ids:
+                has_3to1_harbor = True
+            # Ειδική περίπτωση: αν έχει settlement σε κορυφή 0 ή 9, έχει 2:1 για wood
+            vertex_id = self.get_vertex_id(settlement.location)
+            if give == 'wood' and vertex_id in self.wood_harbor_vertex_ids:
+                has_2to1_harbor = True
+
+        if has_2to1_harbor and player.resources[give] >= 2:
+            player.resources[give] -= 2
+            player.resources[receive] += 1
+            print(f"{player.name} exchanged 2 {give} for 1 {receive} (2:1 harbor).")
+        elif has_3to1_harbor and player.resources[give] >= 3:
+            player.resources[give] -= 3
+            player.resources[receive] += 1
+            print(f"{player.name} exchanged 3 {give} for 1 {receive} (3:1 harbor).")
+        elif player.resources[give] >= 4:
+            player.resources[give] -= 4
+            player.resources[receive] += 1
+            print(f"{player.name} exchanged 4 {give} for 1 {receive} (bank 4:1 trade).")
+        else:
+            self.show_popup_message("Δεν πληροίς τις προϋποθέσεις για την ανταλλαγή")
+
+
+
+    
     def setup_players(self):
         choosing = True
         font = pygame.font.SysFont(None, 40)
@@ -135,6 +273,37 @@ class Game:
                     pygame.quit()
                     sys.exit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.trading_with_bank:
+                        resources = ['wood', 'brick', 'wheat', 'sheep', 'ore']
+                        small_font = pygame.font.SysFont(None, 24)
+
+                        # Επιλογή υλικού προς ΔΩΣΗ
+                        for i, res in enumerate(resources):
+                            give_rect = pygame.Rect(WIDTH - 140, HEIGHT - 600 + i * 30, 60, 25)
+                            if give_rect.collidepoint(x, y):
+                                self.trade_give = res
+                                print("Δίνεις:", res)
+
+                        # Επιλογή υλικού προς ΛΗΨΗ
+                        for i, res in enumerate(resources):
+                            receive_rect = pygame.Rect(WIDTH - 140, HEIGHT - 470  + i * 30, 60, 25)
+                            if receive_rect.collidepoint(x, y):
+                                self.trade_receive = res
+                                print("Θέλεις:", res)
+
+                        # Αν έχουν επιλεγεί και τα δύο, κάνε την ανταλλαγή
+                        if self.trade_give and self.trade_receive:
+                            self.execute_bank_trade()
+                            self.trading_with_bank = False
+                            self.trade_give = None
+                            self.trade_receive = None
+
+                        if self.trade_give and self.trade_receive:
+                            self.execute_bank_trade()
+                            self.trading_with_bank = False
+                            self.trade_give = None
+                            self.trade_receive = None
+
                     for rect, val in buttons:
                         if rect.collidepoint(event.pos):
                             selected_players = val
@@ -187,6 +356,30 @@ class Game:
                 y = start_y + row_idx * y_offset
                 self.tiles.append(Tile(resources[idx], numbers[idx], (x, y)))
                 idx += 1
+        self.setup_harbors()
+        self.assign_vertex_ids()
+        
+
+    def setup_harbors(self):
+        self.harbors = []
+        dx = 300
+        dy = -25
+
+        # (τύπος, αναλογία, εξωτερική θέση, ακμή εξάγωνου - 2 σημεία)
+        harbor_data = [
+            ('3:1', 3, (160 + dx, 40), [(180 + dx, 75), (140 + dx, 75)]),       # Πάνω αριστερά
+            ('wood', 2, (290 + dx, 40 + dy), [(270 + dx, 75), (310 + dx, 75)]),      # Πάνω
+            ('3:1', 3, (420 + dx, 40), [(400 + dx, 75), (440 + dx, 75)]),       # Πάνω δεξιά
+            ('brick', 2, (520 + dx, 140), [(500 + dx, 160), (530 + dx, 180)]),  # Δεξιά πάνω
+            ('3:1', 3, (520 + dx, 260), [(500 + dx, 260), (530 + dx, 280)]),    # Δεξιά κάτω
+            ('sheep', 2, (420 + dx, 370 + 35), [(400 + dx, 335 + 35), (440 + dx, 335)]),  # Κάτω δεξιά
+            ('3:1', 3, (290 + dx, 460 + dy), [(270 + dx, 425), (310 + dx, 425)]),    # Κάτω
+            ('ore', 2, (160 + dx, 370), [(140 + dx, 335), (180 + dx, 335)]),    # Κάτω αριστερά
+            ('wheat', 2, (80 + dx, 260), [(100 + dx, 260), (70 + dx, 280)])     # Αριστερά
+        ]
+
+        for res_type, ratio, pos, edge in harbor_data:
+            self.harbors.append(Harbor(res_type, ratio, pos, edge))
 
     def add_player(self, name, is_ai=False):
         color = PLAYER_COLORS[len(self.players) % len(PLAYER_COLORS)]
@@ -367,43 +560,79 @@ class Game:
         print(f"Next player: {self.players[self.current_player_index].name}")
     def draw_ui(self):
         font = pygame.font.SysFont(None, 36)
+        small_font = pygame.font.SysFont(None, 24)
         player = self.players[self.current_player_index]
+        resources = ['wood', 'brick', 'wheat', 'sheep', 'ore']
+
+        # Κουμπί Τράπεζας
+        bank_btn = pygame.Rect(WIDTH - 150, HEIGHT - 280, 120, 40)
+        pygame.draw.rect(screen, (255, 230, 100), bank_btn)
+        bank_text = font.render("Τράπεζα", True, BLACK)
+        screen.blit(bank_text, bank_btn.move(10, 8))
+
+        # Αν είναι ενεργή η συναλλαγή, δείξε κουμπιά για Δώσε / Πάρε
+        if self.trading_with_bank:
+            y_base = HEIGHT - 700
+            screen.blit(small_font.render("Δώσε:", True, BLACK), (WIDTH - 140, y_base))
+            for i, res in enumerate(resources):
+                rect = pygame.Rect(WIDTH - 140, y_base + 30 + i * 30, 60, 25)
+                pygame.draw.rect(screen, (200, 200, 255), rect)
+                screen.blit(small_font.render(res, True, BLACK), rect.move(5, 5))
+                if self.trade_give == res:
+                    pygame.draw.rect(screen, RED, rect, 2)
+
+            y_base += 190
+            screen.blit(small_font.render("Πάρε:", True, BLACK), (WIDTH - 140, y_base))
+            for i, res in enumerate(resources):
+                rect = pygame.Rect(WIDTH - 140, y_base + 30 + i * 30, 60, 25)
+                pygame.draw.rect(screen, (200, 255, 200), rect)
+                screen.blit(small_font.render(res, True, BLACK), rect.move(5, 5))
+                if self.trade_receive == res:
+                    pygame.draw.rect(screen, GREEN, rect, 2)
+
+        # Κουμπί Roll Dice
         roll_btn_color = (180, 180, 180) if player.has_rolled else YELLOW
         roll_text_color = (100, 100, 100) if player.has_rolled else BLACK
         roll_text = font.render("Roll Dice", True, roll_text_color)
         pygame.draw.rect(screen, roll_btn_color, (WIDTH - 150, HEIGHT - 100, 120, 40))
         screen.blit(roll_text, (WIDTH - 145, HEIGHT - 90))
 
+        # Κουμπί Τέλος
         end_turn_text = font.render("Τέλος", True, BLACK)
         pygame.draw.rect(screen, (200, 200, 200), (WIDTH - 150, HEIGHT - 160, 120, 40))
         screen.blit(end_turn_text, (WIDTH - 145, HEIGHT - 150))
 
+        # Κουμπί Δρόμος / Οικισμός
         build_mode_text = font.render(("Δρόμος" if self.building_road else "Οικισμός"), True, BLACK)
         pygame.draw.rect(screen, (180, 220, 255), (WIDTH - 150, HEIGHT - 220, 120, 40))
         screen.blit(build_mode_text, (WIDTH - 145, HEIGHT - 210))
 
+        # Εμφάνιση αποτελέσματος ζαριών
         if self.last_roll is not None:
-            result_text = font.render(f"Rolled: {self.last_roll}", True, BLACK)
+       	    result_text = font.render(f"Rolled: {self.last_roll}", True, BLACK)
             screen.blit(result_text, (WIDTH - 170, 20))
 
+        # Τρέχων παίκτης
         turn_text = font.render(f"Παίζει ο: {player.name}", True, player.color)
         screen.blit(turn_text, (20, 20))
 
-        small_font = pygame.font.SysFont(None, 24)
-        y_offset = HEIGHT - 100
+                
+        # Πόροι παικτών
+        y_offset = HEIGHT - 200
         for p in self.players:
-            name_text = small_font.render(p.name, True, p.color)
-            screen.blit(name_text, (20, y_offset))
-
+       	    name_text = small_font.render(p.name, True, p.color)
+       	    screen.blit(name_text, (20, y_offset))
             x_offset = 130
             for res_type, amount in p.resources.items():
                 icon = self.resource_images.get(res_type)
                 if icon:
                     screen.blit(icon, (x_offset, y_offset))
                     amt_text = small_font.render(str(amount), True, BLACK)
-                    screen.blit(amt_text, (x_offset + 35, y_offset + 8))
+               	    screen.blit(amt_text, (x_offset + 35, y_offset + 8))
                     x_offset += 70
             y_offset += 40
+       
+         
 
     def draw_tiles(self):
         for tile in self.tiles:
@@ -417,6 +646,47 @@ class Game:
                 screen.blit(resource_img, img_rect)
             for settlement in tile.settlements:
                 pygame.draw.circle(screen, settlement.owner.color, settlement.location, 8)
+            # Προβολή των IDs των κορυφών (debug)
+            font = pygame.font.SysFont(None, 25)
+            #for vertex, vid in self.vertex_id_map.items():
+                #text = font.render(str(vid), True, RED)
+                #screen.blit(text, (vertex[0] - 6, vertex[1] - 6))
+
+    def draw_harbors(self):
+        font = pygame.font.SysFont(None, 16)
+        for harbor in self.harbors:
+            # Εικόνα λιμανιού
+            img = self.harbor_images.get(harbor.resource_type)
+            if img:
+                img_rect = img.get_rect(center=harbor.position)
+                screen.blit(img, img_rect)
+
+            # Ετικέτα 
+            label = f"{harbor.ratio}:1" if harbor.resource_type == '3:1' else f"{harbor.resource_type} 2:1"
+            text = font.render(label, True, BLACK)
+            screen.blit(text, (harbor.position[0] - 20, harbor.position[1] + 18))
+
+    def trade_with_bank(self, give_type, get_type):
+        player = self.players[self.current_player_index]
+    
+        # Έλεγχος αν έχει ο παίκτης οικισμό σε λιμάνι 2:1 αυτού του τύπου
+        has_matching_harbor = False
+        for harbor in self.harbors:
+            if harbor.ratio == 2 and harbor.resource_type == give_type:
+                for settlement in player.settlements:
+                    if any(self.is_close(settlement.location, vertex, threshold=10) for vertex in harbor.edge_vertices):
+                        has_matching_harbor = True
+                        break
+    
+        if has_matching_harbor:
+            if player.resources[give_type] >= 2:
+                player.resources[give_type] -= 2
+                player.resources[get_type] += 1
+                print(f"{player.name} exchanged 2 {give_type} for 1 {get_type}")
+            else:
+                print("Δεν έχεις αρκετούς πόρους για να κάνεις συναλλαγή.")
+        else:
+            print("Δεν έχεις πρόσβαση σε λιμάνι για αυτό το είδος.")
 
     def draw_highlights(self):
         mouse_pos = pygame.mouse.get_pos()
@@ -452,15 +722,45 @@ class Game:
             points.append((point_x, point_y))
         pygame.draw.polygon(surface, color, points, 2)
 
+    def handle_trade(self, give_resource):
+        player = self.players[self.current_player_index]
+    
+        # Έλεγξε αν έχει settlement σε λιμάνι 2:1 για το συγκεκριμένο υλικό
+        eligible = False
+        for harbor in self.harbors:
+            if harbor.resource_type == give_resource and harbor.ratio == 2:
+                for settlement in player.settlements:
+                    if self.is_close(settlement.location, harbor.edge_vertices[0], 20) or \
+                        self.is_close(settlement.location, harbor.edge_vertices[1], 20):
+                        eligible = True
+                        break
+        if not eligible:
+            print("Δεν έχεις πρόσβαση στο λιμάνι 2:1 για αυτό το υλικό.")
+            return
+
+        # Έλεγξε αν έχει 2 υλικά να δώσει
+        if player.resources[give_resource] < 2:
+            print(f"Δεν έχεις 2 {give_resource} για ανταλλαγή.")
+            return
+
+        # Κάνε ανταλλαγή
+        player.resources[give_resource] -= 2
+        wanted_resource = random.choice(['wood', 'brick', 'wheat', 'sheep', 'ore'])
+        player.resources[wanted_resource] += 1
+        print(f"Έδωσες 2 {give_resource} και πήρες 1 {wanted_resource}")
+
     def run(self):
         self.show_start_screen()
         self.setup_players()
         clock = pygame.time.Clock()
         running = True
         while running:
-            screen.fill(WHITE)
+            screen.blit(self.background, (-11, -28))
             self.draw_tiles()
             self.draw_roads()
+            self.draw_tiles()
+            self.draw_roads()
+            self.draw_harbors()  
             self.draw_ui()
             self.draw_highlights()
 
@@ -476,8 +776,65 @@ class Game:
 
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     x, y = pygame.mouse.get_pos()
+                    resources = ['wood', 'brick', 'wheat', 'sheep', 'ore']
+                    # Επιλογή για Δώσε
+                    for i, res in enumerate(resources):
+                        give_rect = pygame.Rect(WIDTH - 140, HEIGHT - 665 + i * 30, 60, 25)
+                        if give_rect.collidepoint(x, y):
+                            self.trade_give = res
+                            print("Δίνεις:", res)
+                           
+
+                    # Επιλογή για Πάρε
+                    for i, res in enumerate(resources):
+                        receive_rect = pygame.Rect(WIDTH - 140, HEIGHT - 470 + i * 30, 60, 25)
+                        if receive_rect.collidepoint(x, y):
+                            self.trade_receive = res
+                            print("Θέλεις:", res)
+                            
+
+                    # Αν έχουν επιλεγεί και τα δύο, κάνε την ανταλλαγή
+                    if self.trade_give and self.trade_receive:
+                        self.execute_bank_trade()
+                        self.trading_with_bank = False
+                        self.trade_give = None
+                        self.trade_receive = None
+                       
+
                     if WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 100 <= y <= HEIGHT - 60:
                         self.roll_dice()
+                    if self.trading_with_bank:
+                        resources = ['wood', 'brick', 'wheat', 'sheep', 'ore']
+
+                        # Δώσε
+                        for i, res in enumerate(resources):
+                            give_rect = pygame.Rect(WIDTH - 140, HEIGHT - 665 + i * 30, 60, 25)
+                            if give_rect.collidepoint(x, y):
+                                self.trade_give = res
+                                
+
+                        # Πάρε
+                        for i, res in enumerate(resources):
+                            receive_rect = pygame.Rect(WIDTH - 140, HEIGHT - 470 + i * 30, 60, 25)
+                            if receive_rect.collidepoint(x, y):
+                                self.trade_receive = res
+                                
+
+                        # Αν και τα δύο έχουν οριστεί, κάνε την ανταλλαγή
+                        if self.trade_give and self.trade_receive:
+                            self.execute_bank_trade()
+                            self.trading_with_bank = False
+                            self.trade_give = None
+                            self.trade_receive = None
+                            
+
+                    if self.show_bank_menu:
+                        resources = ['wood', 'brick', 'wheat', 'sheep', 'ore']
+                        for i, res in enumerate(resources):
+                            btn_rect = pygame.Rect(WIDTH - 150, HEIGHT - 330 - i * 45, 120, 40)
+                            if btn_rect.collidepoint(x, y):
+                                self.handle_trade(res)
+
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 160 <= y <= HEIGHT - 120:
                         self.end_turn()
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 220 <= y <= HEIGHT - 180:
@@ -485,6 +842,11 @@ class Game:
                         print("Building mode:", "Road" if self.building_road else "Settlement")
                     elif self.building_road:
                         self.place_road((x, y))
+                    elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 280 <= y <= HEIGHT - 240:
+                        self.trading_with_bank = not self.trading_with_bank
+                        self.trade_give = None
+                        self.trade_receive = None
+
                     else:
                         self.place_settlement((x, y))
 
