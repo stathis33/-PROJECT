@@ -59,6 +59,7 @@ class Settlement:
     def __init__(self, owner, location):
         self.owner = owner
         self.location = location
+        self.upgraded = False  # False = σπίτι, True = ξενοδοχείο
 
 class Road:
     def __init__(self, owner, start_pos, end_pos):
@@ -75,6 +76,8 @@ class Harbor:
 
 class Game:
     def __init__(self):
+        self.longest_road_owner = None
+        self.upgrading_settlement = False
         self.message = ""
         self.wheat_harbor_vertex_ids = {26, 27}
         self.ore_harbor_vertex_ids = {39, 49}
@@ -92,15 +95,15 @@ class Game:
         self.trade_receive = None
         self.harbors = []
         self.harbor_images = {
-    	    'wood': pygame.image.load('PythonProject/wood.png'),
-            'brick': pygame.image.load('PythonProject/brick.png'),
-            'wheat': pygame.image.load('PythonProject/wheat.png'),
-            'sheep': pygame.image.load('PythonProject/sheep.png'),
-            'ore': pygame.image.load('PythonProject/ore.png'),
-            '3:1': pygame.image.load('Vthree_to_one.png')  # generic harbor
+    	    'wood': pygame.image.load('wood.png'),
+            'brick': pygame.image.load('brick.png'),
+            'wheat': pygame.image.load('wheat.png'),
+            'sheep': pygame.image.load('sheep.png'),
+            'ore': pygame.image.load('ore.png'),
+            '3:1': pygame.image.load('three_to_one.png')  # generic harbor
         }
 
-        original_bg = pygame.image.load("PythonProject/Screenshot 2025-05-16 222805.png")
+        original_bg = pygame.image.load("Screenshot 2025-05-16 222805.png")
         self.background = pygame.transform.scale(original_bg, (int(original_bg.get_width() * 1.02), int(original_bg.get_height() * 1.02)))
         self.players = []
         self.tiles = []
@@ -110,11 +113,11 @@ class Game:
         self.building_road = False
         self.setup_tiles()
         self.resource_images = {
-            'wood': pygame.image.load('PythonProject/wood.png'),
-            'wheat': pygame.image.load('PythonProject/wheat.png'),
-            'ore': pygame.image.load('PythonProject/ore.png'),
-            'brick': pygame.image.load('PythonProject/brick.png'),
-            'sheep': pygame.image.load('PythonProject/sheep.png')
+            'wood': pygame.image.load('wood.png'),
+            'wheat': pygame.image.load('wheat.png'),
+            'ore': pygame.image.load('ore.png'),
+            'brick': pygame.image.load('brick.png'),
+            'sheep': pygame.image.load('sheep.png')
         }
         for key in self.resource_images:
             self.resource_images[key] = pygame.transform.scale(self.resource_images[key], (32, 32))
@@ -151,7 +154,98 @@ class Game:
                     self.vertex_id_map[vertex] = self.next_vertex_id
                     self.next_vertex_id += 1
 
+    def update_points(self):
+        # Πρώτα υπολογίζουμε τον νέο κάτοχο
+        new_owner = self.get_longest_road_owner()
 
+        # Αν άλλαξε ο κάτοχος, αφαιρούμε από τον παλιό και προσθέτουμε στον νέο
+        if new_owner != self.longest_road_owner:
+            if self.longest_road_owner:
+                self.longest_road_owner.points -= 2
+            if new_owner:
+                new_owner.points += 2
+            self.longest_road_owner = new_owner
+
+        # Ενημέρωση πόντων από σπίτια / ξενοδοχεία
+        for player in self.players:
+            base_points = 0
+            for settlement in player.settlements:
+                if hasattr(settlement, 'upgraded') and settlement.upgraded:
+                    base_points += 2
+                else:
+                    base_points += 1
+            # Μην αγγίζεις τους +2 πόντους από δρόμο εδώ, τους χειριζόμαστε ξεχωριστά
+            # Συνεπώς, ενημερώνουμε μόνο το base score
+            # (δηλ. χωρίς longest road)
+            player.base_points = base_points  # optional debug αν θες
+            player.points = base_points
+            if player == self.longest_road_owner:
+                player.points += 2
+
+
+    def get_longest_road_owner(self):
+        max_length = 0
+        owner = None
+        for player in self.players:
+            visited = set()
+            for road in player.roads:
+                length = self.dfs_road_length(road, player, visited, set())
+                if length > max_length:
+                    max_length = length
+                    owner = player
+        return owner
+     
+
+
+    def dfs_road_length(self, current_road, player, visited, path):
+        road_id = (current_road.start_pos, current_road.end_pos)
+        if road_id in path:
+            return 0
+        path.add(road_id)
+
+        max_branch = 0
+        for road in player.roads:
+            if road == current_road:
+                continue
+            if (self.is_close(road.start_pos, current_road.start_pos) or
+                self.is_close(road.start_pos, current_road.end_pos) or
+                self.is_close(road.end_pos, current_road.start_pos) or
+                self.is_close(road.end_pos, current_road.end_pos)):
+                max_branch = max(max_branch, self.dfs_road_length(road, player, visited, path.copy()))
+
+        return 1 + max_branch
+
+
+    def upgrade_settlement(self, pos):
+        player = self.players[self.current_player_index]
+        found = False
+
+        for tile in self.tiles:
+            for settlement in tile.settlements:
+                if self.is_close(settlement.location, pos, threshold=10):
+                    found = True
+                    if settlement.owner != player:
+                        self.show_popup_message("Δεν σου ανήκει αυτό το σπίτι!")
+                        return
+                    if settlement.upgraded:
+                        self.show_popup_message("Έχει ήδη αναβαθμιστεί σε ξενοδοχείο!")
+                        return
+                    if player.resources['wheat'] < 2 or player.resources['ore'] < 3:
+                        self.show_popup_message("Δεν έχεις αρκετούς πόρους!")
+                        return
+
+                    # Αναβάθμιση
+                    player.resources['wheat'] -= 2
+                    player.resources['ore'] -= 3
+                    settlement.upgraded = True
+                    player.points += 1  # αν θες, δώσε 1 πόντο
+                    print(f"{player.name} αναβάθμισε οικισμό σε ξενοδοχείο!")
+                    return
+
+        if not found:
+            self.show_popup_message("Δεν υπάρχει κοντινός οικισμός για αναβάθμιση.")
+
+  
     def show_start_screen(self):
         waiting = True
         font = pygame.font.SysFont(None, 60)
@@ -418,6 +512,7 @@ class Game:
                         pygame.time.wait(800)
                         if player.initial_settlements_placed < 2:
                             self.end_turn()
+                            self.update_points()
                         return
 
         if not player.has_rolled:
@@ -441,10 +536,12 @@ class Game:
                             self.place_road(mid)
                             pygame.time.wait(1000)
                             self.end_turn()
+                            self.update_points()
                             return
 
         pygame.time.wait(1000)
         self.end_turn()
+        self.update_points()
 
     def place_settlement(self, pos):
         for tile in self.tiles:
@@ -555,9 +652,19 @@ class Game:
                                 break
 
     def end_turn(self):
+        self.update_points()
         self.players[self.current_player_index].has_rolled = False
         self.current_player_index = (self.current_player_index + 1) % len(self.players)
         print(f"Next player: {self.players[self.current_player_index].name}")
+        self.update_points()
+        # Έλεγχος για νίκη
+        for player in self.players:
+            if player.points >= 10:
+                self.show_popup_message(f"Ο παίκτης {player.name} είναι ο ΝΙΚΗΤΗΣ!", color=GREEN)
+                
+                
+                
+
     def draw_ui(self):
         font = pygame.font.SysFont(None, 36)
         small_font = pygame.font.SysFont(None, 24)
@@ -601,12 +708,20 @@ class Game:
         end_turn_text = font.render("Τέλος", True, BLACK)
         pygame.draw.rect(screen, (200, 200, 200), (WIDTH - 150, HEIGHT - 160, 120, 40))
         screen.blit(end_turn_text, (WIDTH - 145, HEIGHT - 150))
+        
 
         # Κουμπί Δρόμος / Οικισμός
         build_mode_text = font.render(("Δρόμος" if self.building_road else "Οικισμός"), True, BLACK)
         pygame.draw.rect(screen, (180, 220, 255), (WIDTH - 150, HEIGHT - 220, 120, 40))
         screen.blit(build_mode_text, (WIDTH - 145, HEIGHT - 210))
+        
+        # Κουμπί Αναβάθμιση
+        upgrade_text = font.render("πολ/κία", True, BLACK)
+        pygame.draw.rect(screen, (255, 200, 150), (WIDTH - 150, HEIGHT - 340, 120, 40))
+        screen.blit(upgrade_text, (WIDTH - 145, HEIGHT - 330))
 
+
+     
         # Εμφάνιση αποτελέσματος ζαριών
         if self.last_roll is not None:
        	    result_text = font.render(f"Rolled: {self.last_roll}", True, BLACK)
@@ -616,11 +731,21 @@ class Game:
         turn_text = font.render(f"Παίζει ο: {player.name}", True, player.color)
         screen.blit(turn_text, (20, 20))
 
+
+        for tile in self.tiles:
+            for settlement in tile.settlements:
+        
+                if settlement.upgraded:
+                    pygame.draw.circle(screen, settlement.owner.color, settlement.location, 12)
+                    pygame.draw.circle(screen, BLACK, settlement.location, 12, 2)
+                else:
+                    pygame.draw.circle(screen, settlement.owner.color, settlement.location, 8)
+
                 
         # Πόροι παικτών
         y_offset = HEIGHT - 200
         for p in self.players:
-       	    name_text = small_font.render(p.name, True, p.color)
+       	    name_text = small_font.render(f"{p.name} ({p.points})", True, p.color)
        	    screen.blit(name_text, (20, y_offset))
             x_offset = 130
             for res_type, amount in p.resources.items():
@@ -640,17 +765,19 @@ class Game:
             font = pygame.font.SysFont(None, 24)
             number_text = font.render(str(tile.number), True, BLUE)
             screen.blit(number_text, number_text.get_rect(center=tile.position))
+
             resource_img = self.resource_images.get(tile.resource_type)
             if resource_img:
                 img_rect = resource_img.get_rect(center=(tile.position[0], tile.position[1] + 25))
                 screen.blit(resource_img, img_rect)
+
+            # ✅ Εδώ είναι το σωστό σημείο
             for settlement in tile.settlements:
-                pygame.draw.circle(screen, settlement.owner.color, settlement.location, 8)
-            # Προβολή των IDs των κορυφών (debug)
-            font = pygame.font.SysFont(None, 25)
-            #for vertex, vid in self.vertex_id_map.items():
-                #text = font.render(str(vid), True, RED)
-                #screen.blit(text, (vertex[0] - 6, vertex[1] - 6))
+                if hasattr(settlement, 'upgraded') and settlement.upgraded:
+                    pygame.draw.circle(screen, settlement.owner.color, settlement.location, 12)
+                    pygame.draw.circle(screen, BLACK, settlement.location, 12, 2)
+                else:
+                    pygame.draw.circle(screen, settlement.owner.color, settlement.location, 8)
 
     def draw_harbors(self):
         font = pygame.font.SysFont(None, 16)
@@ -792,6 +919,8 @@ class Game:
                             self.trade_receive = res
                             print("Θέλεις:", res)
                             
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:  # Δεξί κλικ
+                         self.upgrade_settlement(pygame.mouse.get_pos())
 
                     # Αν έχουν επιλεγεί και τα δύο, κάνε την ανταλλαγή
                     if self.trade_give and self.trade_receive:
@@ -837,6 +966,7 @@ class Game:
 
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 160 <= y <= HEIGHT - 120:
                         self.end_turn()
+                        self.update_points()
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 220 <= y <= HEIGHT - 180:
                         self.building_road = not self.building_road
                         print("Building mode:", "Road" if self.building_road else "Settlement")
@@ -846,9 +976,16 @@ class Game:
                         self.trading_with_bank = not self.trading_with_bank
                         self.trade_give = None
                         self.trade_receive = None
+                    elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 340 <= y <= HEIGHT - 300:
+                        self.upgrading_settlement = True
+                        print("Κάνε κλικ σε οικισμό για αναβάθμιση")
 
                     else:
-                        self.place_settlement((x, y))
+                        if self.upgrading_settlement:
+                            self.upgrade_settlement((x, y))
+                            self.upgrading_settlement = False
+                        else:
+                            self.place_settlement((x, y))
 
             pygame.display.flip()
             clock.tick(60)
