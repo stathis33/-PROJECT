@@ -32,6 +32,8 @@ class Player:
         self.settlements = []
         self.roads = []
         self.points = 0
+        self.cards = 0
+        self.card_points = 0
         self.has_rolled = False
         self.initial_settlements_placed = 0
 
@@ -178,9 +180,30 @@ class Game:
             # Συνεπώς, ενημερώνουμε μόνο το base score
             # (δηλ. χωρίς longest road)
             player.base_points = base_points  # optional debug αν θες
-            player.points = base_points
+            player.points = base_points + player.card_points
             if player == self.longest_road_owner:
                 player.points += 2
+
+    
+
+    def buy_card(self):
+        player = self.players[self.current_player_index]
+        if (player.resources['sheep'] >= 1 and
+            player.resources['wheat'] >= 1 and
+            player.resources['ore'] >= 1):
+        
+            # Αφαίρεση πόρων
+            player.resources['sheep'] -= 1
+            player.resources['wheat'] -= 1
+            player.resources['ore'] -= 1
+
+            # Πρόσθεσε πόντο
+            player.card_points += 1
+            print(f"{player.name} αγόρασε κάρτα (+1 πόντος).")
+            self.show_popup_message(f"{player.name} πήρε κάρτα! +1 πόντος", color=BLUE)
+        else:
+            self.show_popup_message("Δεν έχεις αρκετούς πόρους για κάρτα!", color=RED)
+
 
 
     def get_longest_road_owner(self):
@@ -709,7 +732,14 @@ class Game:
         pygame.draw.rect(screen, (200, 200, 200), (WIDTH - 150, HEIGHT - 160, 120, 40))
         screen.blit(end_turn_text, (WIDTH - 145, HEIGHT - 150))
         
+        # Κουμπί Πάρε Κάρτα
+        card_btn = pygame.Rect(WIDTH - 300, HEIGHT - 100, 120, 40)
+        pygame.draw.rect(screen, (200, 180, 255), card_btn)
+        card_text = font.render("Κάρτα", True, BLACK)
+        screen.blit(card_text, card_btn.move(5, 8))
 
+
+      
         # Κουμπί Δρόμος / Οικισμός
         build_mode_text = font.render(("Δρόμος" if self.building_road else "Οικισμός"), True, BLACK)
         pygame.draw.rect(screen, (180, 220, 255), (WIDTH - 150, HEIGHT - 220, 120, 40))
@@ -963,6 +993,7 @@ class Game:
                             btn_rect = pygame.Rect(WIDTH - 150, HEIGHT - 330 - i * 45, 120, 40)
                             if btn_rect.collidepoint(x, y):
                                 self.handle_trade(res)
+                   
 
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 160 <= y <= HEIGHT - 120:
                         self.end_turn()
@@ -972,6 +1003,8 @@ class Game:
                         print("Building mode:", "Road" if self.building_road else "Settlement")
                     elif self.building_road:
                         self.place_road((x, y))
+                    elif WIDTH - 300 <= x <= WIDTH - 200 and HEIGHT - 110 <= y <= HEIGHT - 50:
+                        self.buy_card()
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 280 <= y <= HEIGHT - 240:
                         self.trading_with_bank = not self.trading_with_bank
                         self.trade_give = None
