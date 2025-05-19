@@ -92,15 +92,15 @@ class Game:
         self.trade_receive = None
         self.harbors = []
         self.harbor_images = {
-    	    'wood': pygame.image.load('wood.png'),
-            'brick': pygame.image.load('brick.png'),
-            'wheat': pygame.image.load('wheat.png'),
-            'sheep': pygame.image.load('sheep.png'),
-            'ore': pygame.image.load('ore.png'),
-            '3:1': pygame.image.load('three_to_one.png')  # generic harbor
+    	    'wood': pygame.image.load('PythonProject/wood.png'),
+            'brick': pygame.image.load('PythonProject/brick.png'),
+            'wheat': pygame.image.load('PythonProject/wheat.png'),
+            'sheep': pygame.image.load('PythonProject/sheep.png'),
+            'ore': pygame.image.load('PythonProject/ore.png'),
+            '3:1': pygame.image.load('Vthree_to_one.png')  # generic harbor
         }
 
-        original_bg = pygame.image.load("Screenshot 2025-05-16 222805.png")
+        original_bg = pygame.image.load("PythonProject/Screenshot 2025-05-16 222805.png")
         self.background = pygame.transform.scale(original_bg, (int(original_bg.get_width() * 1.02), int(original_bg.get_height() * 1.02)))
         self.players = []
         self.tiles = []
@@ -110,11 +110,11 @@ class Game:
         self.building_road = False
         self.setup_tiles()
         self.resource_images = {
-            'wood': pygame.image.load('wood.png'),
-            'wheat': pygame.image.load('wheat.png'),
-            'ore': pygame.image.load('ore.png'),
-            'brick': pygame.image.load('brick.png'),
-            'sheep': pygame.image.load('sheep.png')
+            'wood': pygame.image.load('PythonProject/wood.png'),
+            'wheat': pygame.image.load('PythonProject/wheat.png'),
+            'ore': pygame.image.load('PythonProject/ore.png'),
+            'brick': pygame.image.load('PythonProject/brick.png'),
+            'sheep': pygame.image.load('PythonProject/sheep.png')
         }
         for key in self.resource_images:
             self.resource_images[key] = pygame.transform.scale(self.resource_images[key], (32, 32))
