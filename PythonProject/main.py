@@ -20,6 +20,15 @@ RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
 PLAYER_COLORS = [(255, 0, 0), (0, 0, 255), (0, 200, 0), (255, 165, 0)]
 
+RESOURCE_COLORS = {
+        'wood': (0, 153, 100),       # καφέ
+        'brick': (255, 148, 40),      # κόκκινο
+        'wheat': (236, 216, 136),    # κίτρινο-σταριού
+        'sheep': (134, 205, 86),    # πράσινο-απαλό
+        'ore': (152, 152, 152),      # γκρι
+        
+}
+
 # Hexagon settings
 TILE_RADIUS = 40
 
@@ -184,7 +193,7 @@ class Game:
             if player == self.longest_road_owner:
                 player.points += 2
 
-    
+   
 
     def buy_card(self):
         player = self.players[self.current_player_index]
@@ -791,7 +800,8 @@ class Game:
 
     def draw_tiles(self):
         for tile in self.tiles:
-            self.draw_hexagon(screen, BLACK, tile.position, TILE_RADIUS)
+            fill_color = RESOURCE_COLORS.get(tile.resource_type, WHITE)
+            self.draw_hexagon(screen, BLACK, tile.position, TILE_RADIUS, fill_color=fill_color)
             font = pygame.font.SysFont(None, 24)
             number_text = font.render(str(tile.number), True, BLUE)
             screen.blit(number_text, number_text.get_rect(center=tile.position))
@@ -868,7 +878,7 @@ class Game:
         for road in self.roads:
             pygame.draw.line(screen, road.owner.color, road.start_pos, road.end_pos, 5)
 
-    def draw_hexagon(self, surface, color, position, radius):
+    def draw_hexagon(self, surface, color, position, radius, fill_color=None):
         x, y = position
         points = []
         for i in range(6):
@@ -877,6 +887,8 @@ class Game:
             point_x = x + radius * math.cos(angle_rad)
             point_y = y + radius * math.sin(angle_rad)
             points.append((point_x, point_y))
+        if fill_color:
+            pygame.draw.polygon(surface, fill_color, points)
         pygame.draw.polygon(surface, color, points, 2)
 
     def handle_trade(self, give_resource):
