@@ -20,15 +20,6 @@ RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
 PLAYER_COLORS = [(255, 0, 0), (0, 0, 255), (0, 200, 0), (255, 165, 0)]
 
-RESOURCE_COLORS = {
-        'wood': (0, 153, 100),       # καφέ
-        'brick': (255, 148, 40),      # κόκκινο
-        'wheat': (236, 216, 136),    # κίτρινο-σταριού
-        'sheep': (134, 205, 86),    # πράσινο-απαλό
-        'ore': (152, 152, 152),      # γκρι
-        
-}
-
 # Hexagon settings
 TILE_RADIUS = 40
 
@@ -87,8 +78,14 @@ class Harbor:
         self.position = position  # center for drawing
         self.edge_vertices = edge_vertices  # two vertex positions
 
+import os
+
 class Game:
     def __init__(self):
+        ASSETS_PATH = os.path.abspath(os.path.dirname(__file__))
+
+
+
         self.longest_road_owner = None
         self.upgrading_settlement = False
         self.message = ""
@@ -107,17 +104,19 @@ class Game:
         self.trade_give = None
         self.trade_receive = None
         self.harbors = []
+
         self.harbor_images = {
-    	    'wood': pygame.image.load('wood.png'),
-            'brick': pygame.image.load('brick.png'),
-            'wheat': pygame.image.load('wheat.png'),
-            'sheep': pygame.image.load('sheep.png'),
-            'ore': pygame.image.load('ore.png'),
-            '3:1': pygame.image.load('three_to_one.png')  # generic harbor
+            'wood': pygame.image.load(os.path.join(ASSETS_PATH, 'wood.png')),
+            'brick': pygame.image.load(os.path.join(ASSETS_PATH, 'brick.png')),
+            'wheat': pygame.image.load(os.path.join(ASSETS_PATH, 'wheat.png')),
+            'sheep': pygame.image.load(os.path.join(ASSETS_PATH, 'sheep.png')),
+            'ore': pygame.image.load(os.path.join(ASSETS_PATH, 'ore.png')),
+            '3:1': pygame.image.load(os.path.join(ASSETS_PATH, 'three_to_one.png'))
         }
 
-        original_bg = pygame.image.load("Screenshot 2025-05-16 222805.png")
+        original_bg = pygame.image.load(os.path.join(ASSETS_PATH, 'Screenshot 2025-05-16 222805.png'))
         self.background = pygame.transform.scale(original_bg, (int(original_bg.get_width() * 1.02), int(original_bg.get_height() * 1.02)))
+
         self.players = []
         self.tiles = []
         self.roads = []
@@ -125,18 +124,20 @@ class Game:
         self.last_roll = None
         self.building_road = False
         self.setup_tiles()
+
         self.resource_images = {
-            'wood': pygame.image.load('wood.png'),
-            'wheat': pygame.image.load('wheat.png'),
-            'ore': pygame.image.load('ore.png'),
-            'brick': pygame.image.load('brick.png'),
-            'sheep': pygame.image.load('sheep.png')
+            'wood': pygame.image.load(os.path.join(ASSETS_PATH, 'wood.png')),
+            'wheat': pygame.image.load(os.path.join(ASSETS_PATH, 'wheat.png')),
+            'ore': pygame.image.load(os.path.join(ASSETS_PATH, 'ore.png')),
+            'brick': pygame.image.load(os.path.join(ASSETS_PATH, 'brick.png')),
+            'sheep': pygame.image.load(os.path.join(ASSETS_PATH, 'sheep.png'))
         }
+
         for key in self.resource_images:
             self.resource_images[key] = pygame.transform.scale(self.resource_images[key], (32, 32))
         for key in self.harbor_images:
             self.harbor_images[key] = pygame.transform.scale(self.harbor_images[key], (32, 32))
-    
+
     def show_popup_message(self, text, color=RED):
         font = pygame.font.SysFont(None, 36)
         msg_surface = font.render(text, True, color)
@@ -195,6 +196,7 @@ class Game:
             if player == self.longest_road_owner:
                 player.points += 2
 
+
             if player.has_largest_army:
                 player.points += 2
 
@@ -220,6 +222,9 @@ class Game:
             leader.points += 2
             print(f"{leader.name} πήρε τον τίτλο 'Μεγαλύτερος Στρατός' (+2 πόντοι)")
 
+
+
+    
 
 
     def buy_card(self):
@@ -713,9 +718,8 @@ class Game:
                     if tile.number == self.last_roll:
                         for vertex in tile.vertices:
                             if math.hypot(settlement.location[0] - vertex[0], settlement.location[1] - vertex[1]) < 10:
-                                amount = 2 if settlement.upgraded else 1
-                                player.resources[tile.resource_type] += amount
-                                print(f"{player.name} receives {amount} {tile.resource_type}")
+                                player.resources[tile.resource_type] += 1
+                                print(f"{player.name} receives 1 {tile.resource_type}")
                                 break
 
     def end_turn(self):
@@ -833,14 +837,13 @@ class Game:
                     amt_text = small_font.render(str(amount), True, BLACK)
                	    screen.blit(amt_text, (x_offset + 35, y_offset + 8))
                     x_offset += 70
-            y_offset += 40
+                    y_offset += 40
        
          
 
     def draw_tiles(self):
         for tile in self.tiles:
-            fill_color = RESOURCE_COLORS.get(tile.resource_type, WHITE)
-            self.draw_hexagon(screen, BLACK, tile.position, TILE_RADIUS, fill_color=fill_color)
+            self.draw_hexagon(screen, BLACK, tile.position, TILE_RADIUS)
             font = pygame.font.SysFont(None, 24)
             number_text = font.render(str(tile.number), True, BLUE)
             screen.blit(number_text, number_text.get_rect(center=tile.position))
@@ -917,7 +920,7 @@ class Game:
         for road in self.roads:
             pygame.draw.line(screen, road.owner.color, road.start_pos, road.end_pos, 5)
 
-    def draw_hexagon(self, surface, color, position, radius, fill_color=None):
+    def draw_hexagon(self, surface, color, position, radius):
         x, y = position
         points = []
         for i in range(6):
@@ -926,8 +929,6 @@ class Game:
             point_x = x + radius * math.cos(angle_rad)
             point_y = y + radius * math.sin(angle_rad)
             points.append((point_x, point_y))
-        if fill_color:
-            pygame.draw.polygon(surface, fill_color, points)
         pygame.draw.polygon(surface, color, points, 2)
 
     def handle_trade(self, give_resource):
