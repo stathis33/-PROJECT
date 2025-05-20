@@ -679,8 +679,9 @@ class Game:
                     if tile.number == self.last_roll:
                         for vertex in tile.vertices:
                             if math.hypot(settlement.location[0] - vertex[0], settlement.location[1] - vertex[1]) < 10:
-                                player.resources[tile.resource_type] += 1
-                                print(f"{player.name} receives 1 {tile.resource_type}")
+                                amount = 2 if settlement.upgraded else 1
+                                player.resources[tile.resource_type] += amount
+                                print(f"{player.name} receives {amount} {tile.resource_type}")
                                 break
 
     def end_turn(self):
