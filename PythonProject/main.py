@@ -34,6 +34,8 @@ TILE_RADIUS = 40
 
 class Player:
     def __init__(self, name, color, is_ai=False):
+        self.knights = 0
+        self.has_largest_army = False
         self.name = name
         self.color = color
         self.is_ai = is_ai
@@ -193,7 +195,32 @@ class Game:
             if player == self.longest_road_owner:
                 player.points += 2
 
-   
+            if player.has_largest_army:
+                player.points += 2
+
+    def check_largest_army(self):
+        max_knights = 0
+        leader = None
+
+        for p in self.players:
+            if p.knights > max_knights:
+                max_knights = p.knights
+                leader = p
+            elif p.knights == max_knights:
+                leader = None  # ισοπαλία => κανείς δεν παίρνει τον τίτλο
+
+        for p in self.players:
+            if p.has_largest_army and p != leader:
+                p.has_largest_army = False
+                p.points -= 2
+                print(f"{p.name} έχασε τον τίτλο 'Μεγαλύτερος Στρατός'")
+
+        if leader and max_knights >= 3 and not leader.has_largest_army:
+            leader.has_largest_army = True
+            leader.points += 2
+            print(f"{leader.name} πήρε τον τίτλο 'Μεγαλύτερος Στρατός' (+2 πόντοι)")
+
+
 
     def buy_card(self):
         player = self.players[self.current_player_index]
@@ -206,10 +233,17 @@ class Game:
             player.resources['wheat'] -= 1
             player.resources['ore'] -= 1
 
-            # Πρόσθεσε πόντο
-            player.card_points += 1
-            print(f"{player.name} αγόρασε κάρτα (+1 πόντος).")
-            self.show_popup_message(f"{player.name} πήρε κάρτα! +1 πόντος", color=BLUE)
+            # Επιλογή τύπου κάρτας (πόντος ή στρατός)
+            card_type = random.choice(['victory_point', 'knight'])
+            if card_type == 'victory_point':
+                player.card_points += 1
+                self.show_popup_message(f"{player.name} πήρε κάρτα! +1 πόντος", color=BLUE)
+            else:
+                player.knights += 1
+                self.show_popup_message(f"{player.name} πήρε κάρτα Στρατού!", color=BLUE)
+                self.check_largest_army()
+
+                self.update_points()
         else:
             self.show_popup_message("Δεν έχεις αρκετούς πόρους για κάρτα!", color=RED)
 
@@ -761,7 +795,9 @@ class Game:
         screen.blit(upgrade_text, (WIDTH - 145, HEIGHT - 330))
 
 
-     
+        
+
+ 
         # Εμφάνιση αποτελέσματος ζαριών
         if self.last_roll is not None:
        	    result_text = font.render(f"Rolled: {self.last_roll}", True, BLACK)
@@ -787,6 +823,8 @@ class Game:
         for p in self.players:
        	    name_text = small_font.render(f"{p.name} ({p.points})", True, p.color)
        	    screen.blit(name_text, (20, y_offset))
+            knight_text = small_font.render(f"Στρατός: {p.knights}", True, BLACK)
+            screen.blit(knight_text, (20, y_offset + 18))
             x_offset = 130
             for res_type, amount in p.resources.items():
                 icon = self.resource_images.get(res_type)
