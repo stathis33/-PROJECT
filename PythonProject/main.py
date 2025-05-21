@@ -102,6 +102,10 @@ class Game:
                 face = pygame.transform.scale(face, (64, 64))  # Προσαρμογή μεγέθους
                 self.dice_faces.append(face)
         self.current_dice_face = None
+        self.robber_tile = None  # To tile where the robber is currently placed
+        self.placing_robber = False
+        self.thief_image = pygame.image.load("thief.png")
+        self.thief_image = pygame.transform.scale(self.thief_image, (45, 45))  
         self.longest_road_owner = None
         self.upgrading_settlement = False
         self.message = ""
@@ -172,24 +176,25 @@ class Game:
             print("Έχεις ήδη ρίξει τα ζάρια αυτόν τον γύρο!")
             return
 
-        # Animation
+        # Animation όπως έχεις ήδη...
         for _ in range(10):
             self.dice1_face = random.choice(self.dice_faces)
             self.dice2_face = random.choice(self.dice_faces)
             self.draw_screen()
             pygame.time.wait(100)
 
-        # Πραγματική ζαριά
         die1 = random.randint(1, 6)
         die2 = random.randint(1, 6)
         self.last_roll = die1 + die2
         self.dice1_face = self.dice_faces[die1 - 1]
         self.dice2_face = self.dice_faces[die2 - 1]
-
-
         player.has_rolled = True
-        print(f"Dice rolled: {self.last_roll}")
-        self.distribute_resources()
+
+        if self.last_roll == 7:
+            print("Ήρθε 7! Τοποθέτησε τον κλέφτη.")
+            self.placing_robber = True  # ενεργοποιείται η επιλογή εξαγώνου
+        else:
+            self.distribute_resources()
 
         
     def show_popup_message(self, text, color=RED):
@@ -757,9 +762,9 @@ class Game:
         for player in self.players:
             for settlement in player.settlements:
                 for tile in self.tiles:
-                    if tile.number == self.last_roll:
+                    if tile.number == self.last_roll and tile != self.robber_tile:
                         for vertex in tile.vertices:
-                            if math.hypot(settlement.location[0] - vertex[0], settlement.location[1] - vertex[1]) < 10:
+                            if self.is_close(settlement.location, vertex, threshold=10):
                                 amount = 2 if settlement.upgraded else 1
                                 player.resources[tile.resource_type] += amount
                                 print(f"{player.name} receives {amount} {tile.resource_type}")
@@ -906,6 +911,14 @@ class Game:
                     pygame.draw.circle(screen, BLACK, settlement.location, 12, 2)
                 else:
                     pygame.draw.circle(screen, settlement.owner.color, settlement.location, 8)
+              
+            if tile == self.robber_tile:
+                pygame.draw.circle(screen, BLACK, tile.position, 12)
+                pygame.draw.circle(screen, RED, tile.position, 10)
+
+            if tile == self.robber_tile:
+                thief_rect = self.thief_image.get_rect(center=tile.position)
+                screen.blit(self.thief_image, thief_rect)
 
     def draw_harbors(self):
         font = pygame.font.SysFont(None, 16)
@@ -1049,8 +1062,16 @@ class Game:
                             self.trade_receive = res
                             print("Θέλεις:", res)
                             
-                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:  # Δεξί κλικ
+                    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:  
                          self.upgrade_settlement(pygame.mouse.get_pos())
+                    
+                    if self.placing_robber:
+                        for tile in self.tiles:
+                            if self.is_close((x, y), tile.position, threshold=40):
+                                self.robber_tile = tile
+                                print(f"Ο κλέφτης τοποθετήθηκε στο tile με αριθμό {tile.number}")
+                                self.placing_robber = False
+                                break
 
                     # Αν έχουν επιλεγεί και τα δύο, κάνε την ανταλλαγή
                     if self.trade_give and self.trade_receive:
