@@ -116,7 +116,7 @@ class Game:
             '3:1': pygame.image.load('three_to_one.png')  # generic harbor
         }
 
-        original_bg = pygame.image.load("Screenshot 2025-05-16 222805.png")
+        original_bg = pygame.image.load("backgr.png")
         self.background = pygame.transform.scale(original_bg, (int(original_bg.get_width() * 1.02), int(original_bg.get_height() * 1.02)))
         self.players = []
         self.tiles = []
@@ -786,12 +786,12 @@ class Game:
       
         # Κουμπί Δρόμος / Οικισμός
         build_mode_text = font.render(("Δρόμος" if self.building_road else "Οικισμός"), True, BLACK)
-        pygame.draw.rect(screen, (180, 220, 255), (WIDTH - 150, HEIGHT - 220, 120, 40))
+        pygame.draw.rect(screen, (240, 83, 85), (WIDTH - 150, HEIGHT - 220, 120, 40))
         screen.blit(build_mode_text, (WIDTH - 145, HEIGHT - 210))
         
         # Κουμπί Αναβάθμιση
         upgrade_text = font.render("πολ/κία", True, BLACK)
-        pygame.draw.rect(screen, (255, 200, 150), (WIDTH - 150, HEIGHT - 340, 120, 40))
+        pygame.draw.rect(screen, (255, 180, 130), (WIDTH - 150, HEIGHT - 340, 120, 40))
         screen.blit(upgrade_text, (WIDTH - 145, HEIGHT - 330))
 
 
