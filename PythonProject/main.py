@@ -89,6 +89,19 @@ class Harbor:
 
 class Game:
     def __init__(self):
+        dice_sheet = pygame.image.load("dice.png")
+        self.dice_faces = []
+        self.dice1_face = None
+        self.dice2_face = None
+        face_width = dice_sheet.get_width() // 3
+        face_height = dice_sheet.get_height() // 2
+        for row in range(2):
+            for col in range(3):
+                rect = pygame.Rect(col * face_width, row * face_height, face_width, face_height)
+                face = dice_sheet.subsurface(rect)
+                face = pygame.transform.scale(face, (64, 64))  # Προσαρμογή μεγέθους
+                self.dice_faces.append(face)
+        self.current_dice_face = None
         self.longest_road_owner = None
         self.upgrading_settlement = False
         self.message = ""
@@ -136,7 +149,49 @@ class Game:
             self.resource_images[key] = pygame.transform.scale(self.resource_images[key], (32, 32))
         for key in self.harbor_images:
             self.harbor_images[key] = pygame.transform.scale(self.harbor_images[key], (32, 32))
+        
+       
     
+        
+
+    def draw_screen(self):
+        screen.blit(self.background, (-11, -28))
+        self.draw_tiles()
+        self.draw_roads()
+        self.draw_tiles()
+        self.draw_roads()
+        self.draw_harbors()
+        self.draw_ui()
+        self.draw_highlights()
+        pygame.display.flip()
+
+
+    def roll_dice(self):
+        player = self.players[self.current_player_index]
+        if player.has_rolled:
+            print("Έχεις ήδη ρίξει τα ζάρια αυτόν τον γύρο!")
+            return
+
+        # Animation
+        for _ in range(10):
+            self.dice1_face = random.choice(self.dice_faces)
+            self.dice2_face = random.choice(self.dice_faces)
+            self.draw_screen()
+            pygame.time.wait(100)
+
+        # Πραγματική ζαριά
+        die1 = random.randint(1, 6)
+        die2 = random.randint(1, 6)
+        self.last_roll = die1 + die2
+        self.dice1_face = self.dice_faces[die1 - 1]
+        self.dice2_face = self.dice_faces[die2 - 1]
+
+
+        player.has_rolled = True
+        print(f"Dice rolled: {self.last_roll}")
+        self.distribute_resources()
+
+        
     def show_popup_message(self, text, color=RED):
         font = pygame.font.SysFont(None, 36)
         msg_surface = font.render(text, True, color)
@@ -696,15 +751,7 @@ class Game:
             player.roads.append(new_road)
             print(f"Road built by {player.name}")
 
-    def roll_dice(self):
-        player = self.players[self.current_player_index]
-        if player.has_rolled:
-            print("Έχεις ήδη ρίξει τα ζάρια αυτόν τον γύρο!")
-            return
-        self.last_roll = random.randint(1, 6) + random.randint(1, 6)
-        player.has_rolled = True
-        print(f"Dice rolled: {self.last_roll}")
-        self.distribute_resources()
+    
 
     def distribute_resources(self):
         for player in self.players:
@@ -799,9 +846,11 @@ class Game:
 
  
         # Εμφάνιση αποτελέσματος ζαριών
-        if self.last_roll is not None:
-       	    result_text = font.render(f"Rolled: {self.last_roll}", True, BLACK)
-            screen.blit(result_text, (WIDTH - 170, 20))
+        if self.dice1_face and self.dice2_face:
+            screen.blit(self.dice1_face, (WIDTH - 160, 20))
+            screen.blit(self.dice2_face, (WIDTH - 90, 20))
+
+
 
         # Τρέχων παίκτης
         turn_text = font.render(f"Παίζει ο: {player.name}", True, player.color)
