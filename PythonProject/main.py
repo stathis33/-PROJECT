@@ -89,6 +89,11 @@ class Harbor:
 
 class Game:
     def __init__(self):
+        self.fail_sound = pygame.mixer.Sound("fail_sound.mp3")
+        self.place_sound = pygame.mixer.Sound("place_sound.mp3")
+        self.place_sound.set_volume(0.4)
+        self.dice_sound = pygame.mixer.Sound("dice_sound.mp3")
+        self.dice_sound.set_volume(0.4)
         dice_sheet = pygame.image.load("dice.png")
         self.dice_faces = []
         self.dice1_face = None
@@ -233,11 +238,12 @@ class Game:
             return
 
         # Animation όπως έχεις ήδη...
+        self.dice_sound.play()
         for _ in range(10):
             self.dice1_face = random.choice(self.dice_faces)
             self.dice2_face = random.choice(self.dice_faces)
             self.draw_screen()
-            pygame.time.wait(100)
+            pygame.time.wait(50)
 
         die1 = random.randint(1, 6)
         die2 = random.randint(1, 6)
@@ -247,6 +253,7 @@ class Game:
         player.has_rolled = True
 
         if self.last_roll == 7:
+            self.fail_sound.play()
             print("Ήρθε 7! Τοποθέτησε τον κλέφτη.")
             self.show_popup_message("Ήρθε 7! Τοποθέτησε τον κλέφτη.", color=RED)
             self.placing_robber = True  # ενεργοποιείται η επιλογή εξαγώνου
@@ -423,6 +430,7 @@ class Game:
                     settlement.upgraded = True
                     player.points += 1  # αν θες, δώσε 1 πόντο
                     print(f"{player.name} αναβάθμισε οικισμό σε ξενοδοχείο!")
+                    self.place_sound.play()
                     return
 
         if not found:
@@ -756,6 +764,7 @@ class Game:
                     tile.settlements.append(settlement)
                     player.settlements.append(settlement)
                     print(f"Settlement placed by {player.name}")
+                    self.place_sound.play()
                     return
 
     def place_road(self, pos):
@@ -813,7 +822,7 @@ class Game:
             self.roads.append(new_road)
             player.roads.append(new_road)
             print(f"Road built by {player.name}")
-
+            self.place_sound.play()
     
 
     def distribute_resources(self):
@@ -983,9 +992,7 @@ class Game:
 
 
               
-            if tile == self.robber_tile:
-                pygame.draw.circle(screen, BLACK, tile.position, 12)
-                pygame.draw.circle(screen, RED, tile.position, 10)
+            
 
             if tile == self.robber_tile:
                 thief_rect = self.thief_image.get_rect(center=tile.position)
