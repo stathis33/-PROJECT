@@ -89,6 +89,7 @@ class Harbor:
 
 class Game:
     def __init__(self):
+        self.win_sound = pygame.mixer.Sound("win_sound.mp3")
         self.money_sound = pygame.mixer.Sound("money_sound.mp3")
         self.fail_sound = pygame.mixer.Sound("fail_sound.mp3")
         self.place_sound = pygame.mixer.Sound("place_sound.mp3")
@@ -851,7 +852,7 @@ class Game:
         for player in self.players:
             if player.points >= 10:
                 self.show_popup_message(f"Ο παίκτης {player.name} είναι ο ΝΙΚΗΤΗΣ!", color=GREEN)
-                
+                self.win_sound.play()
                 
                 
 
