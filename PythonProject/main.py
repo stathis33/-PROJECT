@@ -160,7 +160,7 @@ class Game:
             '3:1': pygame.image.load('three_to_one.png')  # generic harbor
         }
 
-        original_bg = pygame.image.load("backgr.png")
+        original_bg = pygame.image.load("sea.jpg")
         self.background = pygame.transform.scale(original_bg, (int(original_bg.get_width() * 1.02), int(original_bg.get_height() * 1.02)))
         self.players = []
         self.tiles = []
@@ -1012,9 +1012,9 @@ class Game:
                 screen.blit(img, img_rect)
 
             # Ετικέτα 
-            label = f"{harbor.ratio}:1" if harbor.resource_type == '3:1' else f"{harbor.resource_type} 2:1"
+            label = f"{harbor.ratio}:1" if harbor.resource_type == '3:1' else  "2:1"
             text = font.render(label, True, BLACK)
-            screen.blit(text, (harbor.position[0] - 20, harbor.position[1] + 18))
+            screen.blit(text, (harbor.position[0] - 10, harbor.position[1] + 18))
 
     def trade_with_bank(self, give_type, get_type):
         player = self.players[self.current_player_index]
