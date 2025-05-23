@@ -132,7 +132,7 @@ class Game:
     	    'wood': pygame.image.load('wood.png'),
             'brick': pygame.image.load('brick.png'),
             'wheat': pygame.image.load('wheat.png'),
-            'sheep': pygame.image.load('sheep.png'),
+            'sheep': pygame.image.load('goat.png'),
             'ore': pygame.image.load('ore.png'),
             '3:1': pygame.image.load('three_to_one.png')  # generic harbor
         }
@@ -151,7 +151,7 @@ class Game:
             'wheat': pygame.image.load('wheat.png'),
             'ore': pygame.image.load('ore.png'),
             'brick': pygame.image.load('brick.png'),
-            'sheep': pygame.image.load('sheep.png')
+            'sheep': pygame.image.load('goat.png')
         }
         for key in self.resource_images:
             self.resource_images[key] = pygame.transform.scale(self.resource_images[key], (32, 32))
