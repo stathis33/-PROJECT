@@ -860,7 +860,7 @@ class Game:
         # Έλεγχος για νίκη
         for player in self.players:
             if player.points >= 10:
-                self.win_sound.play()
+                self.win_sound.play(0.5)
                 self.show_popup_message_ii(f"Ο παίκτης {player.name} είναι ο ΝΙΚΗΤΗΣ!", color=GREEN)
                 
                 
