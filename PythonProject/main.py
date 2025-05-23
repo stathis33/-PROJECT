@@ -273,6 +273,15 @@ class Game:
         pygame.display.flip()
         pygame.time.wait(1500)
 
+    def show_popup_message_ii(self, text, color=RED):
+        font = pygame.font.SysFont(None, 36)
+        msg_surface = font.render(text, True, color)
+        bg_rect = pygame.Rect(WIDTH // 2 - 300, HEIGHT // 2 - 40, 600, 80)
+        pygame.draw.rect(screen, (255, 255, 220), bg_rect)  # υπόβαθρο
+        pygame.draw.rect(screen, BLACK, bg_rect, 2)         # περίγραμμα
+        screen.blit(msg_surface, msg_surface.get_rect(center=bg_rect.center))
+        pygame.display.flip()
+        pygame.time.wait(5000)
 
     def get_vertex_id(self, pos):
         for vertex, vid in self.vertex_id_map.items():
@@ -851,8 +860,9 @@ class Game:
         # Έλεγχος για νίκη
         for player in self.players:
             if player.points >= 10:
-                self.show_popup_message(f"Ο παίκτης {player.name} είναι ο ΝΙΚΗΤΗΣ!", color=GREEN)
                 self.win_sound.play()
+                self.show_popup_message_ii(f"Ο παίκτης {player.name} είναι ο ΝΙΚΗΤΗΣ!", color=GREEN)
+                
                 
                 
 
