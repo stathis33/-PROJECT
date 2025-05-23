@@ -127,6 +127,23 @@ class Game:
         self.trading_with_bank = False
         self.trade_give = None
         self.trade_receive = None
+        self.house_images = {
+        (255, 0, 0): pygame.image.load("house_red.png"),       # Παίκτης 1
+        (0, 0, 255): pygame.image.load("house_blue.png"),      # Παίκτης 2
+        (0, 200, 0): pygame.image.load("house_green.png"),     # Παίκτης 3
+        (255, 165, 0): pygame.image.load("house_yellow.png")   # Παίκτης 4
+        }
+        for key in self.house_images:
+            self.house_images[key] = pygame.transform.scale(self.house_images[key], (36, 36))
+        self.hotel_images = {
+            (255, 0, 0): pygame.image.load("building_red.png"),       # Παίκτης 1
+            (0, 0, 255): pygame.image.load("building_blue.png"),      # Παίκτης 2
+            (0, 200, 0): pygame.image.load("building_green.png"),     # Παίκτης 3
+            (255, 165, 0): pygame.image.load("building_yellow.png")   # Παίκτης 4
+        }
+        for key in self.hotel_images:
+            self.hotel_images[key] = pygame.transform.scale(self.hotel_images[key], (36, 48))
+
         self.harbors = []
         self.harbor_images = {
     	    'wood': pygame.image.load('wood.png'),
@@ -907,10 +924,16 @@ class Game:
             for settlement in tile.settlements:
         
                 if settlement.upgraded:
-                    pygame.draw.circle(screen, settlement.owner.color, settlement.location, 12)
-                    pygame.draw.circle(screen, BLACK, settlement.location, 12, 2)
+                    hotel_img = self.hotel_images.get(settlement.owner.color)
+                    if hotel_img:
+                        rect = hotel_img.get_rect(center=settlement.location)
+                        screen.blit(hotel_img, rect) 
                 else:
-                    pygame.draw.circle(screen, settlement.owner.color, settlement.location, 8)
+                    house_img = self.house_images.get(settlement.owner.color)
+                    if house_img:
+                        rect = house_img.get_rect(center=settlement.location)
+                        screen.blit(house_img, rect)
+
 
                 
         # Πόροι παικτών
@@ -945,13 +968,20 @@ class Game:
                 img_rect = resource_img.get_rect(center=(tile.position[0], tile.position[1] + 25))
                 screen.blit(resource_img, img_rect)
 
-            # ✅ Εδώ είναι το σωστό σημείο
+            
             for settlement in tile.settlements:
                 if hasattr(settlement, 'upgraded') and settlement.upgraded:
-                    pygame.draw.circle(screen, settlement.owner.color, settlement.location, 12)
-                    pygame.draw.circle(screen, BLACK, settlement.location, 12, 2)
+                    hotel_img = self.hotel_images.get(settlement.owner.color)
+                    if hotel_img:
+                        rect = hotel_img.get_rect(center=settlement.location)
+                        screen.blit(hotel_img, rect)
                 else:
-                    pygame.draw.circle(screen, settlement.owner.color, settlement.location, 8)
+                    house_img = self.house_images.get(settlement.owner.color)
+                    if house_img:
+                        rect = house_img.get_rect(center=settlement.location)
+                        screen.blit(house_img, rect)
+
+
               
             if tile == self.robber_tile:
                 pygame.draw.circle(screen, BLACK, tile.position, 12)
