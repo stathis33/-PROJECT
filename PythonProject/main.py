@@ -89,6 +89,7 @@ class Harbor:
 
 class Game:
     def __init__(self):
+        self.money_sound = pygame.mixer.Sound("money_sound.mp3")
         self.fail_sound = pygame.mixer.Sound("fail_sound.mp3")
         self.place_sound = pygame.mixer.Sound("place_sound.mp3")
         self.place_sound.set_volume(0.4)
@@ -516,14 +517,17 @@ class Game:
             player.resources[give] -= 2
             player.resources[receive] += 1
             print(f"{player.name} exchanged 2 {give} for 1 {receive} (2:1 harbor).")
+            self.money_sound.play()
         elif has_3to1_harbor and player.resources[give] >= 3:
             player.resources[give] -= 3
             player.resources[receive] += 1
             print(f"{player.name} exchanged 3 {give} for 1 {receive} (3:1 harbor).")
+            self.money_sound.play()
         elif player.resources[give] >= 4:
             player.resources[give] -= 4
             player.resources[receive] += 1
             print(f"{player.name} exchanged 4 {give} for 1 {receive} (bank 4:1 trade).")
+            self.money_sound.play()
         else:
             self.show_popup_message("Δεν πληροίς τις προϋποθέσεις για την ανταλλαγή")
 
