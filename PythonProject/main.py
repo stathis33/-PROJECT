@@ -101,6 +101,10 @@ class Game:
                 face = dice_sheet.subsurface(rect)
                 face = pygame.transform.scale(face, (64, 64))  # Προσαρμογή μεγέθους
                 self.dice_faces.append(face)
+        self.start_background = pygame.image.load("wallpaper.jpg")
+        self.sec_background = pygame.image.load("wallpaper1.jpg")
+        self.thi_background = pygame.image.load("wallpaper1.jpg")
+        self.start_background = pygame.transform.scale(self.start_background, (WIDTH, HEIGHT))
         self.current_dice_face = None
         self.robber_tile = None  # To tile where the robber is currently placed
         self.placing_robber = False
@@ -168,6 +172,41 @@ class Game:
         self.draw_ui()
         self.draw_highlights()
         pygame.display.flip()
+
+    
+
+
+    def confirm_action(self, message="Είσαι σίγουρος;"):
+        font = pygame.font.SysFont(None, 36)
+        clock = pygame.time.Clock()
+        confirm_rect = pygame.Rect(WIDTH // 2 - 150, HEIGHT // 2 - 40, 300, 120)
+        yes_button = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 20, 80, 40)
+        no_button = pygame.Rect(WIDTH // 2 + 20, HEIGHT // 2 + 20, 80, 40)
+
+        while True:
+            pygame.draw.rect(screen, (255, 255, 200), confirm_rect)
+            pygame.draw.rect(screen, BLACK, confirm_rect, 2)
+            text_surface = font.render(message, True, BLACK)
+            screen.blit(text_surface, (confirm_rect.x + 20, confirm_rect.y + 10))
+
+            pygame.draw.rect(screen, (0, 200, 0), yes_button)
+            pygame.draw.rect(screen, (200, 0, 0), no_button)
+
+            screen.blit(font.render("Ναι", True, BLACK), yes_button.move(10, 5))
+            screen.blit(font.render("Όχι", True, BLACK), no_button.move(10, 5))
+
+            pygame.display.flip()
+            clock.tick(30)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if yes_button.collidepoint(event.pos):
+                        return True
+                    elif no_button.collidepoint(event.pos):
+                        return False
 
 
     def roll_dice(self):
@@ -376,13 +415,13 @@ class Game:
     def show_start_screen(self):
         waiting = True
         font = pygame.font.SysFont(None, 60)
-        play_button = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 30, 200, 60)
+        play_button = pygame.Rect(WIDTH // 2 - 150, HEIGHT // 2 - 30, 300, 60)
         clock = pygame.time.Clock()
 
         while waiting:
-            screen.fill(WHITE)
-            pygame.draw.rect(screen, (100, 200, 100), play_button)
-            play_text = font.render("Play", True, BLACK)
+            screen.blit(self.start_background, (0, 0))
+            pygame.draw.rect(screen, (255, 90, 72), play_button)
+            play_text = font.render("Νέο παιχνίδι", True, BLACK)
             screen.blit(play_text, play_text.get_rect(center=play_button.center))
             pygame.display.flip()
             clock.tick(60)
@@ -474,14 +513,14 @@ class Game:
         selected_players = None
 
         while choosing:
-            screen.fill(WHITE)
+            screen.blit(self.sec_background, (0, 0))
             title = font.render("Πόσοι παίκτες;", True, BLACK)
             screen.blit(title, (WIDTH // 2 - 100, 100))
 
             buttons = []
             for i, opt in enumerate(options):
                 rect = pygame.Rect(WIDTH // 2 - 50, 180 + i * 70, 100, 50)
-                pygame.draw.rect(screen, (100, 200, 100), rect)
+                pygame.draw.rect(screen, (255, 90, 72), rect)
                 text = font.render(str(opt), True, BLACK)
                 screen.blit(text, text.get_rect(center=rect.center))
                 buttons.append((rect, opt))
@@ -533,7 +572,7 @@ class Game:
         for i in range(selected_players):
             choosing_ai = True
             while choosing_ai:
-                screen.fill(WHITE)
+                screen.blit(self.thi_background, (0, 0))
                 question = font.render(f"Παίκτης {i+1} είναι AI;", True, BLACK)
                 screen.blit(question, (WIDTH // 2 - 130, 100))
 
@@ -695,6 +734,7 @@ class Game:
                         else:
                             print("Δεν έχεις αρκετούς πόρους για να χτίσεις σπίτι!")
                             return
+                            
                     settlement = Settlement(player, vertex)
                     tile.settlements.append(settlement)
                     player.settlements.append(settlement)
@@ -789,7 +829,7 @@ class Game:
         font = pygame.font.SysFont(None, 36)
         small_font = pygame.font.SysFont(None, 24)
         player = self.players[self.current_player_index]
-        resources = ['wood', 'brick', 'wheat', 'sheep', 'ore']
+        resources = ['Δέντρο', 'Πηλός', 'Κριθάρι', 'Κατσίκι', 'Βράχος']
 
         # Κουμπί Τράπεζας
         bank_btn = pygame.Rect(WIDTH - 150, HEIGHT - 280, 120, 40)
@@ -802,7 +842,7 @@ class Game:
             y_base = HEIGHT - 700
             screen.blit(small_font.render("Δώσε:", True, BLACK), (WIDTH - 140, y_base))
             for i, res in enumerate(resources):
-                rect = pygame.Rect(WIDTH - 140, y_base + 30 + i * 30, 60, 25)
+                rect = pygame.Rect(WIDTH - 140, y_base + 30 + i * 30, 70, 25)
                 pygame.draw.rect(screen, (200, 200, 255), rect)
                 screen.blit(small_font.render(res, True, BLACK), rect.move(5, 5))
                 if self.trade_give == res:
@@ -811,7 +851,7 @@ class Game:
             y_base += 190
             screen.blit(small_font.render("Πάρε:", True, BLACK), (WIDTH - 140, y_base))
             for i, res in enumerate(resources):
-                rect = pygame.Rect(WIDTH - 140, y_base + 30 + i * 30, 60, 25)
+                rect = pygame.Rect(WIDTH - 140, y_base + 30 + i * 30, 70, 25)
                 pygame.draw.rect(screen, (200, 255, 200), rect)
                 screen.blit(small_font.render(res, True, BLACK), rect.move(5, 5))
                 if self.trade_receive == res:
@@ -838,7 +878,7 @@ class Game:
 
       
         # Κουμπί Δρόμος / Οικισμός
-        build_mode_text = font.render(("Δρόμος" if self.building_road else "Οικισμός"), True, BLACK)
+        build_mode_text = font.render(("Δρόμος" if self.building_road else "Σπίτι"), True, BLACK)
         pygame.draw.rect(screen, (240, 83, 85), (WIDTH - 150, HEIGHT - 220, 120, 40))
         screen.blit(build_mode_text, (WIDTH - 145, HEIGHT - 210))
         
@@ -1118,22 +1158,25 @@ class Game:
                    
 
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 160 <= y <= HEIGHT - 120:
-                        self.end_turn()
-                        self.update_points()
+                        if self.confirm_action("   Τελος γύρου;"):
+                            self.end_turn()
+                            self.update_points()
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 220 <= y <= HEIGHT - 180:
                         self.building_road = not self.building_road
                         print("Building mode:", "Road" if self.building_road else "Settlement")
                     elif self.building_road:
                         self.place_road((x, y))
                     elif WIDTH - 300 <= x <= WIDTH - 200 and HEIGHT - 110 <= y <= HEIGHT - 50:
-                        self.buy_card()
+                        if self.confirm_action("Αγορά κάρτας;"):
+                            self.buy_card()
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 280 <= y <= HEIGHT - 240:
-                        self.trading_with_bank = not self.trading_with_bank
-                        self.trade_give = None
-                        self.trade_receive = None
+                            self.trading_with_bank = not self.trading_with_bank
+                            self.trade_give = None
+                            self.trade_receive = None
                     elif WIDTH - 150 <= x <= WIDTH - 30 and HEIGHT - 340 <= y <= HEIGHT - 300:
-                        self.upgrading_settlement = True
-                        print("Κάνε κλικ σε οικισμό για αναβάθμιση")
+                        if self.confirm_action("Θες να αναβαθμίσεις;"):
+                            self.upgrading_settlement = True
+                            print("Κάνε κλικ σε οικισμό για αναβάθμιση")
 
                     else:
                         if self.upgrading_settlement:
