@@ -192,6 +192,7 @@ class Game:
 
         if self.last_roll == 7:
             print("Ήρθε 7! Τοποθέτησε τον κλέφτη.")
+            self.show_popup_message("Ήρθε 7! Τοποθέτησε τον κλέφτη.", color=RED)
             self.placing_robber = True  # ενεργοποιείται η επιλογή εξαγώνου
         else:
             self.distribute_resources()
