@@ -236,7 +236,7 @@ class Game:
     def roll_dice(self):
         player = self.players[self.current_player_index]
         if player.has_rolled:
-            print("Έχεις ήδη ρίξει τα ζάρια αυτόν τον γύρο!")
+            self.show_popup_message("Έχεις ήδη ρίξει τα ζάρια αυτόν τον γύρο!")
             return
 
         # Animation όπως έχεις ήδη...
@@ -348,12 +348,12 @@ class Game:
             if p.has_largest_army and p != leader:
                 p.has_largest_army = False
                 p.points -= 2
-                print(f"{p.name} έχασε τον τίτλο 'Μεγαλύτερος Στρατός'")
+                self.show_popup_message(f"{p.name} έχασε τον τίτλο 'Μεγαλύτερος Στρατός'")
 
         if leader and max_knights >= 3 and not leader.has_largest_army:
             leader.has_largest_army = True
             leader.points += 2
-            print(f"{leader.name} πήρε τον τίτλο 'Μεγαλύτερος Στρατός' (+2 πόντοι)")
+            self.show_popup_message(f"{leader.name} πήρε τον τίτλο 'Μεγαλύτερος Στρατός' (+2 πόντοι)")
 
 
 
@@ -771,7 +771,7 @@ class Game:
                             player.resources['sheep'] -= 1
                             player.resources['wheat'] -= 1
                         else:
-                            print("Δεν έχεις αρκετούς πόρους για να χτίσεις σπίτι!")
+                            self.show_popup_message("Δεν έχεις αρκετούς πόρους για να χτίσεις σπίτι!")
                             return
                             
                     settlement = Settlement(player, vertex)
@@ -802,7 +802,7 @@ class Game:
             for road in self.roads:
                 if (road.start_pos == best_start and road.end_pos == best_end) or \
                    (road.start_pos == best_end and road.end_pos == best_start):
-                    print("Υπάρχει ήδη δρόμος εδώ!")
+                    self.show_popup_message("Υπάρχει ήδη δρόμος εδώ!")
                     return
             connected = False
             if len(player.roads) < 2:
@@ -811,7 +811,7 @@ class Game:
                         connected = True
                         break
                 if not connected:
-                    print("Ο πρώτος δρόμος πρέπει να συνδέεται με το αρχικό σπίτι!")
+                    self.show_popup_message("Ο πρώτος δρόμος πρέπει να συνδέεται με το αρχικό σπίτι!")
                     return
             else:
                 for road in player.roads:
@@ -824,11 +824,11 @@ class Game:
                         connected = True
                         break
                 if not connected:
-                    print("Δεν συνδέεται με υπάρχοντα δρόμο ή οικισμό!")
+                    self.show_popup_message("Δεν συνδέεται με υπάρχοντα δρόμο ή οικισμό!")
                     return
             if len(player.roads) >= 2:
                 if player.resources['wood'] < 1 or player.resources['brick'] < 1:
-                    print("Not enough resources to build a road!")
+                    self.show_popup_message("Δεν υπάρχουν αρκετοί πόροι για δρόμο")
                     return
                 player.resources['wood'] -= 1
                 player.resources['brick'] -= 1
@@ -848,7 +848,7 @@ class Game:
                             if self.is_close(settlement.location, vertex, threshold=10):
                                 amount = 2 if settlement.upgraded else 1
                                 player.resources[tile.resource_type] += amount
-                                print(f"{player.name} receives {amount} {tile.resource_type}")
+                                self.show_popup_message(f"{player.name} πήρε {amount} {tile.resource_type}")
                                 break
 
     def end_turn(self):
@@ -860,7 +860,7 @@ class Game:
         # Έλεγχος για νίκη
         for player in self.players:
             if player.points >= 10:
-                self.win_sound.play(0.5)
+                self.win_sound.play()
                 self.show_popup_message_ii(f"Ο παίκτης {player.name} είναι ο ΝΙΚΗΤΗΣ!", color=GREEN)
                 
                 
@@ -881,7 +881,7 @@ class Game:
         # Αν είναι ενεργή η συναλλαγή, δείξε κουμπιά για Δώσε / Πάρε
         if self.trading_with_bank:
             y_base = HEIGHT - 700
-            screen.blit(small_font.render("Δώσε:", True, BLACK), (WIDTH - 140, y_base))
+            screen.blit(small_font.render("Δώσε:", True, WHITE), (WIDTH - 140, y_base))
             for i, res in enumerate(resources):
                 rect = pygame.Rect(WIDTH - 140, y_base + 30 + i * 30, 70, 25)
                 pygame.draw.rect(screen, (200, 200, 255), rect)
@@ -890,7 +890,7 @@ class Game:
                     pygame.draw.rect(screen, RED, rect, 2)
 
             y_base += 190
-            screen.blit(small_font.render("Πάρε:", True, BLACK), (WIDTH - 140, y_base))
+            screen.blit(small_font.render("Πάρε:", True, WHITE), (WIDTH - 140, y_base))
             for i, res in enumerate(resources):
                 rect = pygame.Rect(WIDTH - 140, y_base + 30 + i * 30, 70, 25)
                 pygame.draw.rect(screen, (200, 255, 200), rect)
@@ -963,8 +963,8 @@ class Game:
         # Πόροι παικτών
         y_offset = HEIGHT - 200
         for p in self.players:
-       	    name_text = small_font.render(f"{p.name} ({p.points})", True, p.color)
-       	    screen.blit(name_text, (20, y_offset))
+            name_text = small_font.render(f"{p.name} ({p.points})", True, p.color)
+            screen.blit(name_text, (20, y_offset))
             knight_text = small_font.render(f"Στρατός: {p.knights}", True, BLACK)
             screen.blit(knight_text, (20, y_offset + 18))
             x_offset = 130
@@ -973,7 +973,7 @@ class Game:
                 if icon:
                     screen.blit(icon, (x_offset, y_offset))
                     amt_text = small_font.render(str(amount), True, BLACK)
-               	    screen.blit(amt_text, (x_offset + 35, y_offset + 8))
+                    screen.blit(amt_text, (x_offset + 35, y_offset + 8))
                     x_offset += 70
             y_offset += 40
        
@@ -1043,11 +1043,11 @@ class Game:
             if player.resources[give_type] >= 2:
                 player.resources[give_type] -= 2
                 player.resources[get_type] += 1
-                print(f"{player.name} exchanged 2 {give_type} for 1 {get_type}")
+                self.show_popup_message(f"{player.name} exchanged 2 {give_type} for 1 {get_type}")
             else:
-                print("Δεν έχεις αρκετούς πόρους για να κάνεις συναλλαγή.")
+                self.show_popup_message("Δεν έχεις αρκετούς πόρους για να κάνεις συναλλαγή.")
         else:
-            print("Δεν έχεις πρόσβαση σε λιμάνι για αυτό το είδος.")
+            self.show_popup_message("Δεν έχεις πρόσβαση σε λιμάνι για αυτό το είδος.")
 
     def draw_highlights(self):
         mouse_pos = pygame.mouse.get_pos()
@@ -1140,20 +1140,10 @@ class Game:
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     x, y = pygame.mouse.get_pos()
                     resources = ['wood', 'brick', 'wheat', 'sheep', 'ore']
-                    # Επιλογή για Δώσε
-                    for i, res in enumerate(resources):
-                        give_rect = pygame.Rect(WIDTH - 140, HEIGHT - 665 + i * 30, 60, 25)
-                        if give_rect.collidepoint(x, y):
-                            self.trade_give = res
-                            print("Δίνεις:", res)
+                    
                            
 
-                    # Επιλογή για Πάρε
-                    for i, res in enumerate(resources):
-                        receive_rect = pygame.Rect(WIDTH - 140, HEIGHT - 470 + i * 30, 60, 25)
-                        if receive_rect.collidepoint(x, y):
-                            self.trade_receive = res
-                            print("Θέλεις:", res)
+                    
                             
                     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:  
                          self.upgrade_settlement(pygame.mouse.get_pos())
@@ -1184,14 +1174,14 @@ class Game:
                             give_rect = pygame.Rect(WIDTH - 140, HEIGHT - 665 + i * 30, 60, 25)
                             if give_rect.collidepoint(x, y):
                                 self.trade_give = res
-                                
+                                print("Δίνεις:", res)
 
                         # Πάρε
                         for i, res in enumerate(resources):
                             receive_rect = pygame.Rect(WIDTH - 140, HEIGHT - 470 + i * 30, 60, 25)
                             if receive_rect.collidepoint(x, y):
                                 self.trade_receive = res
-                                
+                                print("Θέλεις:", res)
 
                         # Αν και τα δύο έχουν οριστεί, κάνε την ανταλλαγή
                         if self.trade_give and self.trade_receive:
